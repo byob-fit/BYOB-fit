@@ -1,0 +1,308 @@
+import { describe, expect, it } from 'vitest'
+
+import type { Day, Item, Program, Section } from '../types/program.ts'
+import type { DayChange } from '../types/stores.ts'
+import {
+  currentWeek,
+  dayForDate,
+  isActiveOn,
+  isLogged,
+  resolveItem,
+  upgradeProgram,
+  weekDates,
+} from './program.ts'
+import { buildDeck } from './session.ts'
+
+// Aug 9 2026 is a Sunday; week 6 therefore begins Sun Sep 13 2026.
+const START = '2026-08-09'
+
+function day(id: string, order: number, extra: Partial<Day> = {}): Day {
+  return { id, order, name: id, sections: [], ...extra }
+}
+
+const program: Program = {
+  schemaVersion: 1,
+  id: 'test',
+  name: 'Test program',
+  weekStartsOn: 'sunday',
+  programWeeks: 12,
+  startDate: START,
+  exercises: { bench: { name: 'Barbell bench press', howTo: 'Press it.' } },
+  days: [
+    day('sun', 0),
+    day('mon', 1, { swappableWith: 'thu' }),
+    day('tue', 2),
+    day('wed', 3),
+    day('thu', 4, { swappableWith: 'mon' }),
+    day('fri', 5),
+    day('sat', 6, { rest: true }),
+  ],
+}
+
+const bench: Item = {
+  id: 'i1',
+  exerciseId: 'bench',
+  type: 'load_reps',
+  sets: 4,
+  repMin: 6,
+  repMax: 8,
+  byWeek: {
+    '5': { sets: 5, repMin: 5 },
+    '9': { repMin: 3, repMax: 5 },
+  },
+}
+
+describe('currentWeek', () => {
+  it('returns week 1 on the start date itself', () => {
+    expect(currentWeek(program, new Date(2026, 7, 9))).toBe(1)
+  })
+
+  it('keeps the last day of week 1 in week 1', () => {
+    expect(currentWeek(program, new Date(2026, 7, 15))).toBe(1)
+  })
+
+  it('rolls to week 2 on the next Sunday', () => {
+    expect(currentWeek(program, new Date(2026, 7, 16))).toBe(2)
+  })
+
+  it('computes a mid-block week', () => {
+    expect(currentWeek(program, new Date(2026, 8, 14))).toBe(6)
+  })
+
+  it('clamps dates before the start to week 1', () => {
+    expect(currentWeek(program, new Date(2026, 6, 1))).toBe(1)
+  })
+
+  it('clamps dates past the last week to programWeeks', () => {
+    expect(currentWeek(program, new Date(2026, 11, 31))).toBe(12)
+  })
+})
+
+describe('resolveItem', () => {
+  it('leaves the item alone before any override key', () => {
+    const r = resolveItem(bench, 4)
+    expect(r.sets).toBe(4)
+    expect(r.repMin).toBe(6)
+    expect(r.repMax).toBe(8)
+  })
+
+  it('applies an override on its own key week', () => {
+    const r = resolveItem(bench, 5)
+    expect(r.sets).toBe(5)
+    expect(r.repMin).toBe(5)
+    // Untouched fields survive the merge.
+    expect(r.repMax).toBe(8)
+  })
+
+  it('keeps an override in force after its key week', () => {
+    expect(resolveItem(bench, 8).sets).toBe(5)
+    expect(resolveItem(bench, 8).repMin).toBe(5)
+  })
+
+  it('lets a higher key overwrite the fields it names', () => {
+    const r = resolveItem(bench, 10)
+    expect(r.repMin).toBe(3)
+    expect(r.repMax).toBe(5)
+    // D-023: cumulative, so week 5's sets survives week 9, which is silent on it.
+    expect(r.sets).toBe(5)
+  })
+
+  it('keeps a lower key field a higher key does not mention (walk-jog)', () => {
+    // seed/program.json sat/i204: base is off, week 8 turns logging on, and
+    // weeks 10 and 12 only refine the cue and minutes.
+    const walkJog: Item = {
+      id: 'i204',
+      exerciseId: 'walk-jog',
+      type: 'cardio_block',
+      minutes: 24,
+      logged: false,
+      cue: 'not before week 8',
+      byWeek: {
+        '8': { logged: true, cue: '1 min jog, 2 min walk, x8' },
+        '10': { cue: '2 min jog, 1 min walk, x8' },
+        '12': { minutes: 15, cue: 'continuous 15 min' },
+      },
+    }
+    expect(resolveItem(walkJog, 7).logged).toBe(false)
+    expect(resolveItem(walkJog, 8).logged).toBe(true)
+    // The week 10 and 12 entries are silent on logged, so week 8's true stands.
+    expect(resolveItem(walkJog, 10).logged).toBe(true)
+    expect(resolveItem(walkJog, 10).cue).toBe('2 min jog, 1 min walk, x8')
+    expect(resolveItem(walkJog, 10).minutes).toBe(24)
+    expect(resolveItem(walkJog, 12).logged).toBe(true)
+    expect(resolveItem(walkJog, 12).minutes).toBe(15)
+    // And the section default is not consulted while logged is set.
+    expect(isLogged('cardio', resolveItem(walkJog, 12))).toBe(true)
+    expect(isLogged('cardio', resolveItem(walkJog, 7))).toBe(false)
+  })
+
+  it('drops byWeek from the resolved item but keeps the id', () => {
+    const r = resolveItem(bench, 6)
+    expect(r.id).toBe('i1')
+    expect('byWeek' in r).toBe(false)
+  })
+
+  it('can override exerciseId for a staged progression', () => {
+    const staged: Item = {
+      id: 'i2',
+      exerciseId: 'plyo_stage1',
+      type: 'bodyweight_reps',
+      byWeek: { '7': { exerciseId: 'plyo_stage2' } },
+    }
+    expect(resolveItem(staged, 6).exerciseId).toBe('plyo_stage1')
+    expect(resolveItem(staged, 7).exerciseId).toBe('plyo_stage2')
+  })
+})
+
+describe('isLogged', () => {
+  it('logs main, block and abs', () => {
+    expect(isLogged('main', {})).toBe(true)
+    expect(isLogged('block', {})).toBe(true)
+    expect(isLogged('abs', {})).toBe(true)
+  })
+
+  it('logs cardio', () => {
+    expect(isLogged('cardio', {})).toBe(true)
+  })
+
+  it('checks off warmup, cooldown and daily', () => {
+    expect(isLogged('warmup', {})).toBe(false)
+    expect(isLogged('cooldown', {})).toBe(false)
+    expect(isLogged('daily', {})).toBe(false)
+  })
+
+  it('lets the item override the section default both ways', () => {
+    expect(isLogged('warmup', { logged: true })).toBe(true)
+    expect(isLogged('main', { logged: false })).toBe(false)
+  })
+})
+
+describe('dayForDate', () => {
+  it('picks the day whose order matches the weekday', () => {
+    // Mon Sep 14 2026.
+    expect(dayForDate(program, null, new Date(2026, 8, 14)).id).toBe('mon')
+    // Sun Sep 13 2026.
+    expect(dayForDate(program, null, new Date(2026, 8, 13)).id).toBe('sun')
+  })
+
+  const setAt = '2026-09-13T09:00:00.000Z'
+
+  it('uses the change for a date when there is one (D-069)', () => {
+    const changes: DayChange[] = [{ date: '2026-09-14', dayId: 'thu', setAt }]
+    expect(dayForDate(program, changes, new Date(2026, 8, 14)).id).toBe('thu')
+    // Nothing else moves: Thursday keeps its own day.
+    expect(dayForDate(program, changes, new Date(2026, 8, 17)).id).toBe('thu')
+  })
+
+  it('leaves dates without a change alone', () => {
+    const changes: DayChange[] = [{ date: '2026-09-14', dayId: 'thu', setAt }]
+    expect(dayForDate(program, changes, new Date(2026, 8, 15)).id).toBe('tue')
+    expect(dayForDate(program, [], new Date(2026, 8, 14)).id).toBe('mon')
+  })
+
+  it('ignores a change naming a day the program no longer has', () => {
+    const changes: DayChange[] = [{ date: '2026-09-14', dayId: 'gone', setAt }]
+    expect(dayForDate(program, changes, new Date(2026, 8, 14)).id).toBe('mon')
+  })
+})
+
+describe('weekDates', () => {
+  it('returns seven dates starting on the week 1 Sunday', () => {
+    const dates = weekDates(program, 1)
+    expect(dates).toHaveLength(7)
+    expect(dates[0].getDay()).toBe(0)
+    expect(dates[0].toDateString()).toBe(new Date(2026, 7, 9).toDateString())
+    expect(dates[6].toDateString()).toBe(new Date(2026, 7, 15).toDateString())
+  })
+
+  it('offsets by whole weeks', () => {
+    const dates = weekDates(program, 6)
+    expect(dates[0].toDateString()).toBe(new Date(2026, 8, 13).toDateString())
+    expect(dates[6].toDateString()).toBe(new Date(2026, 8, 19).toDateString())
+  })
+})
+
+describe('section kinds cover the schema enum', () => {
+  it('treats every kind in a program the same way twice', () => {
+    const sections: Section[] = [
+      { id: 's1', kind: 'warmup', title: 'Warm-up', items: [] },
+      { id: 's2', kind: 'main', title: 'Main', items: [] },
+    ]
+    expect(sections.map((s) => isLogged(s.kind, {}))).toEqual([false, true])
+  })
+})
+
+describe('isActiveOn (D-028)', () => {
+  const item: Item = {
+    id: 'i1',
+    exerciseId: 'squat',
+    type: 'load_reps',
+    retiredFrom: '2026-10-07',
+  }
+
+  it('is active the day before retiredFrom', () => {
+    expect(isActiveOn(item, new Date(2026, 9, 6, 23, 59))).toBe(true)
+  })
+
+  it('is inactive on the retiredFrom date', () => {
+    expect(isActiveOn(item, new Date(2026, 9, 7, 0, 0))).toBe(false)
+  })
+
+  it('is inactive the day after retiredFrom', () => {
+    expect(isActiveOn(item, new Date(2026, 9, 8, 12, 0))).toBe(false)
+  })
+
+  it('is always active without retiredFrom', () => {
+    const live: Item = { ...item, retiredFrom: undefined }
+    expect(isActiveOn(live, new Date(2030, 0, 1))).toBe(true)
+  })
+
+  it('leaves retired items out of the deck from that date', () => {
+    const day: Day = {
+      id: 'wed',
+      order: 3,
+      name: 'Wednesday',
+      sections: [
+        {
+          id: 's1',
+          kind: 'main',
+          title: 'Main',
+          items: [item, { id: 'i2', exerciseId: 'bench', type: 'load_reps' }],
+        },
+      ],
+    }
+    const ids = (date: Date) => buildDeck(day, 1, date).map((d) => d.item.id)
+    expect(ids(new Date(2026, 9, 6))).toEqual(['i1', 'i2'])
+    expect(ids(new Date(2026, 9, 7))).toEqual(['i2'])
+    expect(buildDeck(day, 1, new Date(2026, 9, 7))[0].position).toBe(1)
+  })
+})
+
+describe('upgradeProgram (database version 3, D-035)', () => {
+  const v1 = {
+    schemaVersion: 1,
+    id: 'p',
+    name: 'P',
+    weekStartsOn: 'sunday',
+    programWeeks: 8,
+    startDate: '2026-08-09',
+    exercises: {},
+    days: [],
+  } as Program
+
+  it('restamps a version 1 program as version 2 and keeps everything else', () => {
+    const next = upgradeProgram(v1)
+    expect(next.schemaVersion).toBe(2)
+    expect({ ...next, schemaVersion: 1 }).toEqual(v1)
+  })
+
+  it('does not change its input', () => {
+    upgradeProgram(v1)
+    expect(v1.schemaVersion).toBe(1)
+  })
+
+  it('leaves a version 2 program as it is', () => {
+    const v2 = upgradeProgram(v1)
+    expect(upgradeProgram(v2)).toEqual(v2)
+  })
+})
