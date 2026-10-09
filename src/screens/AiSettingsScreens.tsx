@@ -84,7 +84,7 @@ export function AiSettingsScreen() {
       <AppHeader back={{ label: 'Profile', to: '/profile' }} />
       <div className="page-v3">
         <h1 className="page-v3__title">AI</h1>
-        <p className="page-v3__lead">Optional. Uses your own key. You always see what&apos;s sent before it goes.</p>
+        <p className="page-v3__lead">Optional. Uses your own key. You always see what’s sent before it goes.</p>
       </div>
 
       <ListGroup title="Your key">
@@ -161,7 +161,7 @@ export function AiSettingsScreen() {
           ))}
         </div>
       </ListGroup>
-      <p className="note-v3">Body entries go at every level. Never sent: name, date of birth, height, age, sex or your API key.</p>
+      <p className="note-v3">Body entries are sent at every level. Never sent: name, date of birth, height, age, sex or your API key.</p>
       <ListGroup>
         <ListRow title="What each level sends" onClick={() => navigate('/settings/privacy')} />
         <ListRow title="AI usage and budget" onClick={() => navigate('/settings/usage')} />
@@ -380,12 +380,12 @@ export function UsageScreen() {
         <a className="lrow" href={CONSOLE_LIMITS_URL} target="_blank" rel="noreferrer">
           <span className="lrow__text">
             <span className="lrow__title">Set a monthly limit in the Anthropic console</span>
-            <span className="lrow__sub">Your account&apos;s limit is the one that always holds.</span>
+            <span className="lrow__sub">Your account’s limit is the one that always holds.</span>
           </span>
         </a>
         <ListRow title="Use a key made only for this app" sub="Its spend is then easy to see in the console, and you can turn it off without touching anything else." />
       </ListGroup>
-      <p className="note-v3">Costs are estimates from your provider&apos;s published prices. Your provider&apos;s bill is the final word.</p>
+      <p className="note-v3">Costs are estimates from your provider’s published prices. Your provider’s bill is the final word.</p>
 
       {editing === 'budget' && (
         <Sheet title="Monthly budget" body="In US dollars. Leave it empty for no budget." onClose={() => setEditing(null)}>

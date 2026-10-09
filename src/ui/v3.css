@@ -2924,6 +2924,22 @@ select {
   background: var(--field);
   display: flex;
   flex-direction: column;
+  /* D-092 rule 6: the tiles are buttons. */
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.compare__tile--on {
+  box-shadow: inset 0 0 0 2px var(--sage);
+}
+
+.compare__tile:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .compare__tile b {

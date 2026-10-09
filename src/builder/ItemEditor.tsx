@@ -240,7 +240,7 @@ export function ItemEditor({
       {retiring && (
         <Sheet
           title="Retire this exercise?"
-          body={`${name} has ${weeksLogged} ${weeksLogged === 1 ? 'week' : 'weeks'} of history. Your history is kept. It won't appear on future days, but stays in the Log.`}
+          body={`${name} has ${weeksLogged} ${weeksLogged === 1 ? 'week' : 'weeks'} of history. Your history is kept. It won’t appear on future days, but stays in the Log.`}
           onClose={() => setRetiring(false)}
         >
           <button type="button" className="bd-danger" onClick={onRemove}>

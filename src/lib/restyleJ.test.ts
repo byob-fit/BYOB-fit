@@ -23,8 +23,8 @@ describe('1a: Restore from a backup (D-072 rule 1, D-083 rule 3)', () => {
     expect(restore).toContain('applyAppearance(appearanceOf(result.backup.settings))')
   })
   it('a bad file shows 4.07 and changes nothing', () => {
-    expect(welcome).toContain('This file couldn&apos;t be read')
-    expect(welcome).toContain("It isn&apos;t a BYOB-fit file, or it&apos;s damaged. Nothing on your phone was changed.")
+    expect(welcome).toContain('This file couldn’t be read')
+    expect(welcome).toContain("It isn’t a BYOB-fit file, or it’s damaged. Nothing on your phone was changed.")
     expect(onboarding.indexOf('const checked = checkBackup(text)')).toBeLessThan(onboarding.indexOf('const result = await restoreFromText(text)'))
   })
 })
@@ -73,7 +73,7 @@ describe('states (4.01, 4.05, 4.07, 4.08)', () => {
   })
   it('4.08 offline: everything works except AI', () => {
     expect(read('../pwa/AppNotices.tsx')).toContain("You're offline. Everything works except AI.")
-    expect(read('../ai/useWeekReview.tsx')).toContain('Review this week when back online')
+    expect(read('../ai/useWeekReview.tsx')).toContain('Review this week when you’re back online')
   })
 })
 

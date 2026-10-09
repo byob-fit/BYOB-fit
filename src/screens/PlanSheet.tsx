@@ -99,7 +99,7 @@ export function PlanSheet({
   return (
     <>
       <div className="bd-scrim" onClick={onClose} />
-      <div className="bd-sheet dk-plan" role="dialog" aria-modal="true" aria-label="Today's plan">
+      <div className="bd-sheet dk-plan" role="dialog" aria-modal="true" aria-label="Today’s plan">
         <div className="bd-sheet__grab" />
         <div className="plan-sheet__head">
           <h2 className="sheet__title">Plan</h2>
@@ -185,7 +185,7 @@ export function PlanSheet({
         <div className="plan-sheet__foot">
           {onChangeDay ? (
             <button type="button" className="btn btn--tertiary" onClick={onChangeDay}>
-              Change today&apos;s workout
+              Change today’s workout
             </button>
           ) : (
             <span />

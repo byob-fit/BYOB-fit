@@ -220,7 +220,7 @@ export function SettingsScreen() {
           <div className="bd-input">
             <textarea
               id="rules"
-              placeholder="Plain text rules the model must follow when it writes next week."
+              placeholder="Plain-text rules the model must follow when it writes next week."
               defaultValue={settings.rules ?? ''}
               onBlur={(event) => void update({ rules: event.target.value })}
             />
@@ -302,7 +302,7 @@ export function SettingsScreen() {
       {overlay === 'reset' && (
         <Sheet
           title="Delete everything?"
-          body="Your program, logs, meals, goal and API key will be removed from this phone. This can't be undone. Export first if you want a copy."
+          body="Your program, logs, meals, goal and API key will be removed from this phone. This can’t be undone. Export first if you want a copy."
           onClose={() => setOverlay(null)}
         >
           <button type="button" className="bd-danger" onClick={() => void doReset()}>

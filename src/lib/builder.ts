@@ -608,5 +608,5 @@ export function defaultItem(id: string, exerciseId: string, kind: SectionKind, u
  */
 export function lengthHint(editing: boolean, currentWeek: number, programWeeks: number): string | null {
   const minWeeks = editing ? Math.max(1, currentWeek) : 1
-  return editing && currentWeek > 1 && programWeeks === minWeeks ? `You're in week ${currentWeek}, so the minimum is ${currentWeek} weeks.` : null
+  return editing && currentWeek > 1 && programWeeks === minWeeks ? `You’re in week ${currentWeek}, so the minimum is ${currentWeek} weeks.` : null
 }

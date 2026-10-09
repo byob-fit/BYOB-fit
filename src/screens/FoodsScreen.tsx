@@ -14,7 +14,7 @@ const OPTIONAL = [
   { key: 'proteinG', label: 'Protein', unit: 'g' },
   { key: 'carbsG', label: 'Carbohydrate', unit: 'g' },
   { key: 'fatG', label: 'Fat', unit: 'g' },
-  { key: 'fibreG', label: 'Fibre', unit: 'g' },
+  { key: 'fibreG', label: 'Fiber', unit: 'g' },
   { key: 'sodiumMg', label: 'Sodium', unit: 'mg' },
   { key: 'addedSugarG', label: 'Added sugars', unit: 'g' },
   { key: 'satFatG', label: 'Saturated fat', unit: 'g' },

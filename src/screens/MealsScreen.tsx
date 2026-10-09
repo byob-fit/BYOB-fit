@@ -322,13 +322,13 @@ export function MealsScreen() {
 
   const errorCard = send.kind === 'error' && (
     <section className="card-v3 card-v3--danger" role="alert">
-      <h2 className="card-v3__danger-title">The estimate didn&apos;t come back</h2>
+      <h2 className="card-v3__danger-title">The estimate didn’t come back</h2>
       <p className="card-v3__warn-body">
         {/401|authentication|x-api-key/i.test(send.text) ? 'Your provider said the key isn’t valid.' : send.text.replace(/\.?$/, '.')} Your foods are still here.
       </p>
       <div className="card-v3__buttons">
         <button type="button" className="chip" onClick={() => navigate('/settings/ai')}>
-          Check key in Settings
+          Check your key in Settings
         </button>
         <button type="button" className="chip" onClick={() => preview.open()}>
           Try again
@@ -376,7 +376,7 @@ export function MealsScreen() {
           </div>
           <div>
             <b>{fibre !== undefined ? `${fibre} g` : '–'}</b>
-            <span>fibre target</span>
+            <span>fiber target</span>
           </div>
         </section>
         <TargetNotes targets={targets} fibre={fibre} onGoal={() => navigate('/goal')} />
@@ -423,7 +423,7 @@ export function MealsScreen() {
             {targets.proteinG !== undefined && <Meter value={eaten.proteinG} max={targets.proteinG} />}
           </div>
           <div>
-            <MeterRow label="Fibre" value={eaten.fibreG !== undefined ? `${g1(eaten.fibreG)} g` : 'Not known'} of={fibre !== undefined ? `of ${fibre} g` : ''} ai={aiEstimated(items, 'fibreG')} />
+            <MeterRow label="Fiber" value={eaten.fibreG !== undefined ? `${g1(eaten.fibreG)} g` : 'Not known'} of={fibre !== undefined ? `of ${fibre} g` : ''} ai={aiEstimated(items, 'fibreG')} />
             {fibre !== undefined && <Meter value={eaten.fibreG ?? 0} max={fibre} />}
           </div>
           <div className="totals-v3__pair">
@@ -525,7 +525,7 @@ export function MealsScreen() {
             </>
           ) : (
             <p className="note-v3" role="status">
-              You&apos;re offline. Tap a food to enter it yourself, or estimate when you&apos;re back online. Nothing is lost.
+              You’re offline. Tap a food to enter it yourself, or estimate when you’re back online. Nothing is lost.
             </p>
           )}
           <p className="note-v3">{waiting.length === 1 ? 'The total leaves out the food still waiting.' : 'The total leaves out the foods still waiting.'}</p>
@@ -628,15 +628,15 @@ function TargetNotes({ targets, fibre, onGoal }: { targets: ReturnType<typeof co
             : 'Resting energy from your height, age and sex (Mifflin-St Jeor).'}
         </p>
       )}
-      {targets.kcal !== undefined && fibre !== undefined && <p className="note-v3">Fibre target: 14 g per 1,000 kcal of your calorie target.</p>}
+      {targets.kcal !== undefined && fibre !== undefined && <p className="note-v3">Fiber target: 14 g per 1,000 kcal of your calorie target.</p>}
       {targets.kcal === undefined && targets.proteinG !== undefined && (
         <button type="button" className="btn btn--tertiary" onClick={onGoal}>
-          Add height, age, sex and activity in Goal for a calorie target.
+          Add height, age, sex and activity in Goals for a calorie target.
         </button>
       )}
       {targets.proteinG === undefined && (
         <button type="button" className="btn btn--tertiary" onClick={onGoal}>
-          Add your weight in Goal to see a target.
+          Add your weight in Goals to see a target.
         </button>
       )}
     </div>

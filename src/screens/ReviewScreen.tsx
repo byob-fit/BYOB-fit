@@ -71,7 +71,7 @@ export function ReviewScreen() {
       setChoices({})
       const result = await sendAndLog({ kind: 'review', level, payload, system: REVIEW_SYSTEM_PROMPT, settings, maxTokens: 8192, timeoutMs: 180_000 })
       if (!result.ok) {
-        setPhase({ kind: 'error', title: "Couldn't reach the model", body: 'Check your key in Settings.', errors: [result.error], settingsLink: true })
+        setPhase({ kind: 'error', title: "Couldn’t reach the model", body: 'Check your key in Settings.', errors: [result.error], settingsLink: true })
         return
       }
       let reply: unknown

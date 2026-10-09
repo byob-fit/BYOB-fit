@@ -71,6 +71,7 @@ import { SwapStep } from './SwapStep.tsx'
 import { PlanSheet } from './PlanSheet.tsx'
 import { useProgram } from '../program/useProgram.ts'
 import { clearDeckState, readDeckState, writeDeckState } from '../session/deckState.ts'
+import { needsCentring } from '../lib/deckScroll.ts'
 import { useSession } from '../session/useSession.ts'
 import { useSettings } from '../settings/useSettings.ts'
 import type { Exercise, ItemFields } from '../types/program.ts'
@@ -148,10 +149,16 @@ async function centreInVisibleArea(row: HTMLElement) {
   if (!row.isConnected) return
   const viewport = window.visualViewport
   const rect = row.getBoundingClientRect()
-  // 4.09: the active set sits above the visible area's midline, so the keyboard never covers it.
-  const target = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) * ROW_TARGET
-  window.scrollBy({ top: rect.top + rect.height / 2 - target, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  const top = viewport?.offsetTop ?? 0
+  const height = viewport?.height ?? window.innerHeight
+  // D-092 rule 5: scroll once, only when needed. The row may stay where it is if
+  // it is fully visible below the header and above the midline (4.09); otherwise
+  // it moves once, without animation, so it never fights the browser's own scroll.
+  if (!needsCentring(rect, top, height, document.querySelector('.hdr')?.getBoundingClientRect().bottom ?? 0)) return
+  const target = top + height * ROW_TARGET
+  window.scrollBy({ top: rect.top + rect.height / 2 - target, behavior: 'auto' })
 }
+
 
 /** Where the focused set's centre lands in the visible area, from its top: above the midline (frame 4.09). */
 export const ROW_TARGET = 0.38
@@ -238,6 +245,35 @@ function Deck() {
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [holdStart, setHoldStart] = useState<Record<string, number>>({})
+  // D-092 rule 2: at most one hold timer runs; this is it, for the deck state.
+  const runningHold = useMemo(() => {
+    const key = Object.keys(holdStart)[0]
+    return key ? { key, startedAt: holdStart[key] } : null
+  }, [holdStart])
+  const holdRef = useRef(holdStart)
+  useEffect(() => {
+    holdRef.current = holdStart
+  }, [holdStart])
+  /**
+   * D-092 rule 3: stop running holds into their boxes as unsaved values, so
+   * nothing keeps running unseen and nothing is lost. `keepPrefix` spares the
+   * holds whose row key starts with it (the current exercise's).
+   */
+  const stopHolds = useCallback((keepPrefix?: string) => {
+    const running = holdRef.current
+    const stopped = Object.keys(running).filter((k) => !(keepPrefix && k.startsWith(keepPrefix)))
+    if (stopped.length === 0) return
+    const at = Date.now()
+    setDrafts((d) => {
+      const next = { ...d }
+      for (const k of stopped) next[boxKey(k, 'v')] = String(Math.round((at - running[k]) / 1000))
+      return next
+    })
+    const kept: Record<string, number> = {}
+    for (const k of Object.keys(running)) if (!stopped.includes(k)) kept[k] = running[k]
+    holdRef.current = kept
+    setHoldStart(kept)
+  }, [])
   const [cardioStart, setCardioStart] = useState<number | null>(null)
   const [demoOpen, setDemoOpen] = useState<Record<number, boolean>>({})
   const [history, setHistory] = useState<Session[]>([])
@@ -251,6 +287,8 @@ function Deck() {
   const [resumeAsked, setResumeAsked] = useState(fromToday)
   const [saveFailed, setSaveFailed] = useState<{ row: SetRow } | null>(null)
   const [endAsked, setEndAsked] = useState(false)
+  // D-092 rule 6: which summary tile's exercises show; null follows the default.
+  const [compareView, setCompareView] = useState<'up' | 'same' | 'down' | null>(null)
   // D-054 rules 3 and 4: the focused set box's name; null when none has focus.
   const [focusLabel, setFocusLabel] = useState<string | null>(null)
   // D-063: the plan sheet; D-065 rule 8: summary Keep controls and the draft check.
@@ -284,6 +322,7 @@ function Deck() {
           setRestSec(kept.restSec ?? null)
         }
         if (kept.position !== null) setPosition(kept.position)
+        if (kept.hold) setHoldStart({ [kept.hold.key]: kept.hold.startedAt })
       }
       setRestored(true)
     })
@@ -328,6 +367,11 @@ function Deck() {
   // A kept position can outlast an item removed since; stay inside the deck.
   const at = Math.min(position ?? startAt ?? 0, Math.max(0, deck.length - 1))
   const current: DeckItem | undefined = deck[at]
+  // D-092 rule 3: moving to another exercise stops any hold left running on the last one.
+  const currentItemId = current?.item.id
+  useEffect(() => {
+    if (currentItemId) stopHolds(`${currentItemId}:`)
+  }, [currentItemId, stopHolds])
   const entry = findEntry(api.session ?? undefined, current?.item.id ?? '')
   const exerciseId = entry?.exerciseId ?? current?.resolved.exerciseId ?? ''
   const exercise: Exercise | undefined = program?.exercises[exerciseId] ?? library.find((l) => l.id === exerciseId)?.exercise
@@ -355,8 +399,9 @@ function Deck() {
       drafts,
       position,
       ...(barLabel ? { label: barLabel } : {}),
+      ...(runningHold ? { hold: runningHold } : {}),
     })
-  }, [restored, sessionId, open, phase, restUntil, restSec, drafts, position, barLabel])
+  }, [restored, sessionId, open, phase, restUntil, restSec, drafts, position, barLabel, runningHold])
   // The summary means the session ended or was discarded: nothing to keep.
   useEffect(() => {
     if (phase === 'summary' && sessionId) void clearDeckState(sessionId)
@@ -455,7 +500,11 @@ function Deck() {
       const flaggedRaw = isSetFlagged(stored) ? (stored?.raw ?? '') : undefined
       const { reference } = prefillFor(row)
       const exact = exactReference(row)
-      const typed = (box: Box) => drafts[boxKey(key, box)]
+      // D-092 rule 3: saving a row whose hold is running logs the time held so far.
+      const holdAt = holdRef.current[key]
+      const heldText = holdAt !== undefined ? String(Math.round((Date.now() - holdAt) / 1000)) : undefined
+      if (holdAt !== undefined) stopHolds()
+      const typed = (box: Box) => (box === 'v' && heldText !== undefined ? heldText : drafts[boxKey(key, box)])
 
       // "same" in any box copies last week's set, as before.
       if ((['w', 'r', 'v'] as Box[]).some((box) => /^\s*same(\s+again)?\s*$/i.test(typed(box) ?? ''))) {
@@ -506,7 +555,7 @@ function Deck() {
       show([['v', { ok: true, value: outcome.value }]])
       return writeRow(row, { [single.field]: outcome.value }, action)
     },
-    [current, entry, drafts, prefillFor, exactReference, writeRow],
+    [current, entry, drafts, prefillFor, exactReference, writeRow, stopHolds],
   )
 
   const advance = useCallback(
@@ -637,28 +686,32 @@ function Deck() {
     const compared = compareWithLastWeek(session, deck, history, day.id)
     const ready = readyToProgress(session, deck, history, (id) => program?.exercises[id] ?? library.find((l) => l.id === id)?.exercise)
     const counted = compared.up + compared.same + compared.down
+    const firstWithLines = (['up', 'same', 'down'] as const).find((c) => compared[c] > 0) ?? 'up'
+    const shownChange = compareView !== null && compared[compareView] > 0 ? compareView : firstWithLines
     return (
       <>
         {(counted > 0 || compared.newIds.length > 0) && (
           <section className="card-v3 compare">
             <h2 className="compare__title">Compared with last week</h2>
             {counted > 0 && (
-              <div className="compare__tiles">
-                <div className="compare__tile compare__tile--up">
-                  <b>{compared.up}</b>
-                  <span>Up</span>
-                </div>
-                <div className="compare__tile">
-                  <b>{compared.same}</b>
-                  <span>Same</span>
-                </div>
-                <div className="compare__tile">
-                  <b>{compared.down}</b>
-                  <span>Down</span>
-                </div>
+              // D-092 rule 6: each tile lists its own exercises; Up shows first when it has any.
+              <div className="compare__tiles" role="group" aria-label="Show exercises that went up, stayed the same or went down">
+                {(['up', 'same', 'down'] as const).map((change) => (
+                  <button
+                    type="button"
+                    key={change}
+                    className={`compare__tile${change === 'up' ? ' compare__tile--up' : ''}${change === shownChange ? ' compare__tile--on' : ''}`}
+                    aria-pressed={change === shownChange}
+                    disabled={compared[change] === 0}
+                    onClick={() => setCompareView(change)}
+                  >
+                    <b>{compared[change]}</b>
+                    <span>{change === 'up' ? 'Up' : change === 'same' ? 'Same' : 'Down'}</span>
+                  </button>
+                ))}
               </div>
             )}
-            {compared.upLines.map((line) => (
+            {compared.lines.filter((line) => line.change === shownChange).map((line) => (
               <div className="compare__line" key={line.exerciseId}>
                 <span className="compare__name">{nameOf(line.exerciseId)}</span>
                 <span className="compare__values">
@@ -823,7 +876,7 @@ function Deck() {
             {orderOffered && (
               <div className="dk-keep__row">
                 <div className="dk-keep__main">
-                  <div className="dk-keep__title">Today&apos;s order</div>
+                  <div className="dk-keep__title">Today’s order</div>
                   <div className="dk-keep__sub">You changed the order or sections today.</div>
                 </div>
                 {kept.order ? (
@@ -885,7 +938,7 @@ function Deck() {
             {summary.setsConfirmed} of {totalSets} sets · {minutes} min{summary.skipped > 0 ? ` · ${summary.skipped} skipped` : ''}
           </p>
         </section>
-        {swapped && <p className="note-v3">Logged as {day.name}&apos;s session (days changed)</p>}
+        {swapped && <p className="note-v3">Logged as {day.name}’s session (days changed)</p>}
         {renderProgress()}
         {felt.length > 0 && (
           <p className="note-v3">
@@ -1029,6 +1082,8 @@ function Deck() {
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${id}-error` : undefined}
             onFocus={(event) => {
+              // D-092 rule 4: tapping a running box stops its timer; the time held stays in the box to edit.
+              if (running !== undefined) stopHolds()
               collapseDemo()
               setFocusLabel(`Set ${row.n}${row.side ? ` ${row.side}` : ''} · ${what}`)
               document.documentElement.dataset.setFocus = ''
@@ -1162,7 +1217,7 @@ function Deck() {
     const active = n === activeN || typed || flaggedRow !== undefined || holdStart[rowKey(current.item.id, rows[0])] !== undefined
     const extra = (
       <>
-        {flaggedRow && <div className="dk-flag">Couldn&apos;t read this. Tap to fix.</div>}
+        {flaggedRow && <div className="dk-flag">Couldn’t read this. Tap to fix.</div>}
         {/* D-065 rule 5: the last added set, with nothing saved, can be removed. */}
         {n === baseSets + addedSets && n > baseSets && !rows.some((row) => findSet(entry, row)) && (
           <button
@@ -1246,7 +1301,15 @@ function Deck() {
     )
   }
 
-  const holdKey = current.resolved.type === 'timed_hold' && activeN !== undefined ? rowKey(current.item.id, current.resolved.perSide ? { n: activeN, side: 'L' } : { n: activeN }) : null
+  // D-092 rule 1: a left/right hold runs one side at a time, left then right.
+  const holdSide: 'L' | 'R' | undefined = (() => {
+    if (!current.resolved.perSide || activeN === undefined) return undefined
+    for (const side of ['L', 'R'] as const) if (holdStart[rowKey(current.item.id, { n: activeN, side })] !== undefined) return side
+    return isSetConfirmed(findSet(entry, { n: activeN, side: 'L' })) && !isSetConfirmed(findSet(entry, { n: activeN, side: 'R' })) ? 'R' : 'L'
+  })()
+  const holdRow: SetRow | null = current.resolved.type === 'timed_hold' && activeN !== undefined ? (holdSide ? { n: activeN, side: holdSide } : { n: activeN }) : null
+  const holdKey = holdRow ? rowKey(current.item.id, holdRow) : null
+  const sideWords = holdSide ? `, ${holdSide === 'L' ? 'left' : 'right'} side` : ''
   const holdStarted = holdKey ? holdStart[holdKey] : undefined
   const holdTarget = current.resolved.holdSec ?? 0
 
@@ -1258,7 +1321,7 @@ function Deck() {
         aside={isCheckTile && !current.logged ? current.section.title : `${current.position} of ${deck.length}`}
         action={
           <>
-            <button type="button" className="pill-action" aria-label="Today's plan" onClick={() => setPlanOpen(true)}>
+            <button type="button" className="pill-action" aria-label="Today’s plan" onClick={() => setPlanOpen(true)}>
               Plan
             </button>
             <button type="button" className="dk-end" onClick={endFlow}>
@@ -1290,7 +1353,7 @@ function Deck() {
           <StateBlock
             role="alert"
             mark="!"
-            title="Couldn't save that set"
+            title="Couldn’t save that set"
             body="It’s still on screen. Try again; nothing else is lost."
             primary={{
               label: 'Try again',
@@ -1343,7 +1406,7 @@ function Deck() {
               <span className="hold-panel__clock">{formatClock(holdStarted ? (now - holdStarted) / 1000 : 0)}</span>
               {holdTarget > 0 && <span className="hold-panel__of">of {formatClock(holdTarget)}</span>}
             </ProgressRing>
-            <span className="hold-panel__words">{holdStarted ? `Holding, set ${activeN}. Keep breathing.` : `Set ${activeN}. Start when you're in position.`}</span>
+            <span className="hold-panel__words">{holdStarted ? `Holding, set ${activeN}${sideWords}. Keep breathing.` : `Set ${activeN}${sideWords}. Start when you’re in position.`}</span>
           </div>
         )}
         {holdKey && !entry?.skipped && activeN !== undefined && (
@@ -1352,10 +1415,12 @@ function Deck() {
               type="button"
               className="btn btn--primary"
               onClick={() => {
-                const row: SetRow = current.resolved.perSide ? { n: activeN, side: 'L' } : { n: activeN }
+                if (!holdRow) return
+                const row = holdRow
                 const key = rowKey(current.item.id, row)
                 if (holdStart[key]) {
                   const seconds = Math.round((Date.now() - holdStart[key]) / 1000)
+                  holdRef.current = {}
                   setHoldStart((h) => {
                     const nextHolds = { ...h }
                     delete nextHolds[key]
@@ -1366,7 +1431,11 @@ function Deck() {
                     startRest()
                   })
                 } else {
-                  setHoldStart((h) => ({ ...h, [key]: Date.now() }))
+                  // D-092 rule 2: starting a timer stops any other first.
+                  stopHolds()
+                  const startedAt = Date.now()
+                  holdRef.current = { [key]: startedAt }
+                  setHoldStart({ [key]: startedAt })
                 }
               }}
             >
@@ -1377,8 +1446,8 @@ function Deck() {
                 type="button"
                 className="btn btn--tertiary"
                 onClick={() => {
-                  const row: SetRow = current.resolved.perSide ? { n: activeN, side: 'L' } : { n: activeN }
-                  void writeRow(row, { seconds: holdTarget }).then(() => setEditingN(null))
+                  if (!holdRow) return
+                  void writeRow(holdRow, { seconds: holdTarget }).then(() => setEditingN(null))
                 }}
               >
                 Log {holdTarget} s without the timer
@@ -1644,7 +1713,7 @@ function Deck() {
       {sheet === 'felt' && (
         <Sheet
           title={`How did ${lowerFirst(exercise?.name ?? exerciseId)} feel?`}
-          body="Saved with today's session."
+          body="Saved with today’s session."
           onClose={() => setSheet(null)}
         >
           <div style={{ marginTop: -8, borderTop: '1.5px solid var(--text)' }} role="radiogroup" aria-label="How did it feel?">

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { ROW_TARGET } from '../screens/DeckScreen.tsx'
+import { needsCentring } from './deckScroll.ts'
 import { entryLine, prescriptionSentence } from './prescription.ts'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
@@ -54,7 +55,14 @@ describe('Motion (README) with reduce-motion versions', () => {
 describe('Keyboard open (4.09)', () => {
   it('puts the active set row above the screen midline', () => {
     expect(ROW_TARGET).toBeLessThan(0.5)
-    expect(deck).toContain('(viewport?.height ?? window.innerHeight) * ROW_TARGET')
+    expect(deck).toContain('const target = top + height * ROW_TARGET')
+  })
+  it('D-092 rule 5: scrolls only when the row is hidden or below the midline', () => {
+    // viewport 0 to 800, header ends at 134, midline 400
+    expect(needsCentring({ top: 200, bottom: 260 }, 0, 800, 134)).toBe(false)
+    expect(needsCentring({ top: 100, bottom: 160 }, 0, 800, 134)).toBe(true)
+    expect(needsCentring({ top: 500, bottom: 560 }, 0, 800, 134)).toBe(true)
+    expect(needsCentring({ top: 900, bottom: 960 }, 0, 800, 134)).toBe(true)
   })
   it('the tab bar steps aside while a set box has focus', () => {
     expect(css).toMatch(/:root\[data-keyboard='open'\] \.tabbar/)

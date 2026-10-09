@@ -75,7 +75,7 @@ export function BuildScreen() {
       setPhase({ kind: 'loading' })
       const result = await sendAndLog({ kind: 'update', level, payload, system: REPROGRAM_SYSTEM_PROMPT, settings, maxTokens: 8192, timeoutMs: 180_000 })
       if (!result.ok) {
-        setPhase({ kind: 'error', title: "Couldn't reach the model", body: 'Check your key in Settings.', errors: [result.error], settingsLink: true })
+        setPhase({ kind: 'error', title: "Couldn’t reach the model", body: 'Check your key in Settings.', errors: [result.error], settingsLink: true })
         return
       }
       let reply: unknown
@@ -174,7 +174,7 @@ export function BuildScreen() {
           </StatePanel>
         )}
         {phase.kind === 'ready' && !online && (
-          <StatePanel icon="!" title="You're offline" body="AI features need a connection. Try again once you're back online.">
+          <StatePanel icon="!" title="You’re offline" body="AI features need a connection. Try again once you’re back online.">
             <button type="button" className="ai-btn" onClick={() => navigate('/program/edit')}>
               Edit it myself
             </button>
@@ -314,7 +314,7 @@ export function BuildScreen() {
           </div>
         )}
       </div>
-      <div className="ai-whole">This is one update. It is approved or discarded as a whole. To change single lines, discard and edit it yourself.</div>
+      <div className="ai-whole">This is one update. It is approved or discarded as a whole. To change single lines, discard it and edit the program yourself.</div>
       <Dock>
         <div className="ai-pair">
           <button type="button" className="ob-outline" disabled={busy} onClick={() => void discard()}>

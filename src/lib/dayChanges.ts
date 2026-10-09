@@ -84,7 +84,7 @@ export function changeConfirmation(input: { date: Date; from: Pick<Day, 'name' |
   const title = `Change ${shortDate(input.date)} from ${dayLabel(input.from)} to ${dayLabel(input.to)}?`
   const body =
     input.isToday && input.loggedToday
-      ? `What you logged today stays under today. Today's session ends as it stands, and ${dayLabel(input.to)} starts as a second session today.`
+      ? `What you logged today stays under today. Today’s session ends as it stands, and ${dayLabel(input.to)} starts as a second session today.`
       : 'Nothing else moves; Restore puts this date back.'
   return { title, body }
 }

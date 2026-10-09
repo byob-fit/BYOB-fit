@@ -286,7 +286,7 @@ export function TodayScreen() {
                 Week {week} of {program.programWeeks} · {program.name}
               </div>
               <h1 className="today-card__title">Rest day</h1>
-              <p className="today-card__sub">{deck.length ? "Recovery counts as training. Today's daily items:" : 'Nothing scheduled. Recovery counts as training.'}</p>
+              <p className="today-card__sub">{deck.length ? "Recovery counts as training. Your daily items:" : 'Nothing scheduled. Recovery counts as training.'}</p>
             </>
           )}
         </section>
@@ -294,7 +294,7 @@ export function TodayScreen() {
         {canChange && (
           <div className="actions-v3">
             <button type="button" className="btn btn--tertiary" onClick={() => setChanging(true)}>
-              Change today&apos;s workout
+              Change today’s workout
             </button>
           </div>
         )}
@@ -393,7 +393,7 @@ export function TodayScreen() {
       <TrainHeader today={today} week={week} />
       <BackupNote />
       <ReviewBanner program={program} />
-      {swapped && <p className="note-v3 note-v3--top">Changed: this is {day.name}&apos;s session</p>}
+      {swapped && <p className="note-v3 note-v3--top">Changed: this is {day.name}’s session</p>}
       {card}
       {finished && (
         <section className="card-v3 coming-up">
@@ -405,7 +405,7 @@ export function TodayScreen() {
       {canChange && !started && (
         <div className="actions-v3">
           <button type="button" className="btn btn--tertiary" onClick={() => setChanging(true)}>
-            Change today&apos;s workout
+            Change today’s workout
           </button>
         </div>
       )}

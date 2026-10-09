@@ -101,7 +101,7 @@ export function ProfileScreen() {
   const targetLine = [
     targets.kcal !== undefined ? `Calorie target ${targets.kcal.toLocaleString('en-US')}` : null,
     targets.proteinG !== undefined ? `protein ${targets.proteinG} g` : null,
-    fibre !== undefined ? `fibre ${fibre} g` : null,
+    fibre !== undefined ? `fiber ${fibre} g` : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -160,7 +160,7 @@ export function ProfileScreen() {
 
       <ListGroup title="Other details">
         {rows.length === 0 && (
-          <p className="pf-empty">Nothing here yet. Add the fields you want the reprogramming prompt to know about — a goal, targets, anything you choose to enter.</p>
+          <p className="pf-empty">Nothing here yet. Add anything you want the AI to know, such as a goal or targets.</p>
         )}
         {rows.map((row, i) => (
           <div className="profile-row pf-field" key={row.key}>

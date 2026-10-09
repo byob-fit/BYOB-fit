@@ -10,7 +10,7 @@ import { useOnline } from '../ai/usePreview.tsx'
 import { showDisclaimerOn } from '../lib/notices.ts'
 
 const DISCLAIMER =
-  'This app and its AI features are not medical, dietary or training advice. Verify changes with a qualified professional.'
+  'This app and its AI features do not give medical, dietary or training advice. Verify changes with a qualified professional.'
 
 const TOAST_MS = 4000
 

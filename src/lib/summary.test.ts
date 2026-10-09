@@ -96,6 +96,14 @@ describe('Compared with last week (D-074 rule 4)', () => {
   it('same, down by weight, reps-only down; counts', () => {
     expect([c.up, c.same, c.down]).toEqual([3, 1, 2])
   })
+  it('D-092 rule 6: every compared exercise has a line, so Same and Down can list theirs', () => {
+    expect(c.lines.filter((l) => l.change === 'same')).toEqual([{ exerciseId: 'row', today: '60 kg × 10', last: '60 kg × 10', change: 'same' }])
+    expect(c.lines.filter((l) => l.change === 'down').map((l) => [l.exerciseId, l.today, l.last])).toEqual([
+      ['press', '37.5 kg × 10', '40 kg × 10'],
+      ['pullup', '7 reps', '8 reps'],
+    ])
+    expect(c.lines.filter((l) => l.change === 'up').map((l) => ({ exerciseId: l.exerciseId, today: l.today, last: l.last }))).toEqual(c.upLines)
+  })
   it('a first-time exercise is listed as New and not counted', () => {
     expect(c.newIds).toEqual(['lunge'])
   })

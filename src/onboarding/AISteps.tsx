@@ -28,7 +28,7 @@ export function AIIntroStep({
         <SectionHead>What it can do</SectionHead>
         <div className="ob-bullet">Review your program against your goal</div>
         <div className="ob-bullet">Suggest next week from what you logged</div>
-        <div className="ob-bullet">Estimate calories for meals the app doesn&apos;t know</div>
+        <div className="ob-bullet">Estimate calories for meals the app doesn’t know</div>
         <div className="ob-note" style={{ marginTop: 10 }}>
           Nothing changes until you approve it.
         </div>
@@ -43,7 +43,7 @@ export function AIIntroStep({
           Set up AI
         </button>
         <button type="button" className="ob-outline" onClick={onSkip}>
-          Skip, I&apos;ll do this later
+          Skip, I’ll do this later
         </button>
       </Dock>
     </div>

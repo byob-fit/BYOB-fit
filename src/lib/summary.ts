@@ -21,6 +21,8 @@ export interface LastWeekComparison {
   same: number
   down: number
   upLines: UpLine[]
+  /** D-092 rule 6: a line for every compared exercise, so each tile can list its own. */
+  lines: (UpLine & { change: 'up' | 'same' | 'down' })[]
   /** Exercises with no comparable entry before today: listed, not counted. */
   newIds: string[]
 }
@@ -88,7 +90,7 @@ export function setText(set: SetLog, type: ItemType, unit: string): string {
  * session; this session is left out of it.
  */
 export function compareWithLastWeek(session: Session | undefined, deck: DeckItem[], history: Session[], dayId: string): LastWeekComparison {
-  const result: LastWeekComparison = { up: 0, same: 0, down: 0, upLines: [], newIds: [] }
+  const result: LastWeekComparison = { up: 0, same: 0, down: 0, upLines: [], lines: [], newIds: [] }
   const before = history.filter((s) => s.id !== session?.id)
   for (const deckItem of deck) {
     if (!deckItem.logged) continue
@@ -106,10 +108,10 @@ export function compareWithLastWeek(session: Session | undefined, deck: DeckItem
     }
     const change = compareTopSets(today, last, type)
     result[change] += 1
-    if (change === 'up') {
-      const unit = deckItem.resolved.unit ?? 'kg'
-      result.upLines.push({ exerciseId: entry.exerciseId, today: setText(today, type, unit), last: setText(last, type, unit) })
-    }
+    const unit = deckItem.resolved.unit ?? 'kg'
+    const line = { exerciseId: entry.exerciseId, today: setText(today, type, unit), last: setText(last, type, unit) }
+    result.lines.push({ ...line, change })
+    if (change === 'up') result.upLines.push(line)
   }
   return result
 }

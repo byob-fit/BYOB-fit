@@ -132,11 +132,11 @@ export function budgetGate(state: BudgetState, cost: number, budget: Budget): Bu
     return {
       kind: 'block',
       title: 'Monthly AI budget reached',
-      text: `This month's estimated cost is ${spent}, so nothing was sent. To send anyway, raise the budget or turn off Stop sending at the budget in Settings, AI usage and budget.`,
+      text: `This month’s estimated cost is ${spent}, so nothing was sent. To send anyway, raise the budget or turn off Stop sending at the budget in Settings → AI usage and budget.`,
     }
   }
-  if (state === 'over') return { kind: 'notice', text: `Over budget: this month's estimated cost is ${spent}.` }
-  if (state === 'warn') return { kind: 'notice', text: `This month's estimated cost is ${spent}.` }
+  if (state === 'over') return { kind: 'notice', text: `Over budget: this month’s estimated cost is ${spent}.` }
+  if (state === 'warn') return { kind: 'notice', text: `This month’s estimated cost is ${spent}.` }
   return { kind: 'ok' }
 }
 

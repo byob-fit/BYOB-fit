@@ -13,7 +13,7 @@ export function AddExercise({ items, onPick, onBack }: { items: AddableItem[]; o
     <div className="ob" style={{ paddingBottom: 40 }}>
       <BuilderBar title="Add exercise" onBack={onBack} />
       <div className="bd-hint" style={{ margin: '0 24px 8px' }}>
-        For today only, right after the current exercise, with that day&apos;s prescription.
+        For today only, right after the current exercise, with that day’s prescription.
       </div>
       <label className="bd-search">
         <SearchGlyph />

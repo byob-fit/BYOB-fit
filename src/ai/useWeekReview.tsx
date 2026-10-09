@@ -93,11 +93,11 @@ export function useWeekReview(input: {
       )}
       {state.kind === 'error' && (
         <section className="card-v3 card-v3--danger" role="alert">
-          <h2 className="card-v3__danger-title">The review didn&apos;t come back</h2>
+          <h2 className="card-v3__danger-title">The review didn’t come back</h2>
           <p className="card-v3__warn-body">{state.text}</p>
           <div className="card-v3__buttons">
             <button type="button" className="chip" onClick={() => navigate('/settings/ai')}>
-              Check key in Settings
+              Check your key in Settings
             </button>
             <button type="button" className="chip" onClick={() => preview.open()}>
               Try again
@@ -122,7 +122,7 @@ export function useWeekReview(input: {
       {!online ? (
         // 4.08: everything works offline except AI.
         <button type="button" className="btn btn--offline" disabled>
-          Review this week when back online
+          Review this week when you’re back online
         </button>
       ) : settings.apiKey ? (
         <button type="button" className="btn btn--secondary" disabled={state.kind === 'sending'} onClick={() => preview.open()}>
@@ -133,7 +133,7 @@ export function useWeekReview(input: {
           <button type="button" className="btn btn--secondary" onClick={() => navigate('/settings/ai')}>
             Review this week
           </button>
-          <p className="note-v3">Needs an AI key. Add one in Settings, AI.</p>
+          <p className="note-v3">This needs an AI key. Add one in Settings → AI.</p>
         </>
       )}
     </div>

@@ -42,7 +42,10 @@ describe('safety notice (D-029, D-050 rule 4)', () => {
     for (const id of ['1c', '1c-dark', '5j', '5j-dark']) {
       const html = frame(id)
       expect(html).toContain(SAFETY_TITLE)
-      expect(html).toContain(SAFETY_NOTICE)
+      // D-092 rule 7: two corrections to the design's wording (grammar, American English); the rest matches it exactly.
+      const designWording = SAFETY_NOTICE.replace('does not give medical advice', 'is not medical advice').replace('physical therapist', 'physiotherapist')
+      expect(designWording).not.toBe(SAFETY_NOTICE)
+      expect(html).toContain(designWording)
       expect(html).toContain(SAFETY_STOP)
     }
   })

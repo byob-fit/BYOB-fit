@@ -240,7 +240,7 @@ export function OnboardingScreen() {
           </span>
           <h1 className="ob-hero__title">Build your own body</h1>
           <div className="ob-hero__text">
-            BYOB-fit shows today&apos;s workout as a checklist and logs every set as you go. It can
+            BYOB-fit shows today’s workout as a checklist and logs every set as you go. It can
             also track meals and, if you want, ask an AI to adjust your program.
           </div>
           <ul className="ob-points">
@@ -260,8 +260,8 @@ export function OnboardingScreen() {
           {restore.kind === 'error' && (
             // 4.07: the file was not a BYOB-fit export, or it is damaged.
             <section className="card-v3 card-v3--danger ob-restore-error" role="alert">
-              <h2 className="card-v3__danger-title">This file couldn&apos;t be read</h2>
-              <p className="card-v3__warn-body">It isn&apos;t a BYOB-fit file, or it&apos;s damaged. Nothing on your phone was changed.</p>
+              <h2 className="card-v3__danger-title">This file couldn’t be read</h2>
+              <p className="card-v3__warn-body">It isn’t a BYOB-fit file, or it’s damaged. Nothing on your phone was changed.</p>
               <p className="ob-restore-error__detail">{restore.errors.join(' · ')}</p>
             </section>
           )}
@@ -358,7 +358,7 @@ export function OnboardingScreen() {
     return (
       <div className="ob">
         <StepNav step={n} onBack={back} onSkip={skipProgram} />
-        <StepHead step={n} title="How do you want to add your program?" lede="You can edit it any time after." />
+        <StepHead step={n} title="How do you want to add your program?" lede="You can edit it any time later." />
         <div className="ob-list" role="radiogroup" aria-label="How do you want to add your program?">
           <ChoiceRow
             title="Build it with forms"
@@ -571,7 +571,7 @@ export function OnboardingScreen() {
             go('1j')
           }}
         />
-        <StepHead step={n} title="Which units do you use?" lede="For weights on your sets and body weight." />
+        <StepHead step={n} title="Which units do you use?" lede="Used for the weights you lift and your body weight." />
         <div className="ob-list" role="radiogroup" aria-label="Units">
           <ChoiceRow title="Pounds (lb)" on={units === 'lb'} onClick={() => set({ units: 'lb' })} />
           <ChoiceRow title="Kilograms (kg)" on={units === 'kg'} onClick={() => set({ units: 'kg' })} />
@@ -635,7 +635,7 @@ export function OnboardingScreen() {
       <StepNav step={n} onBack={back} />
       <StepHead
         step={n}
-        title="You're set"
+        title="You’re set"
         lede="Here is what you chose. All of it can be changed later."
       />
       <div className="ob-list">

@@ -55,7 +55,7 @@ describe('the confirmation (rules 1 and 4)', () => {
   it('today with logged sets says what happens to them', () => {
     const c = changeConfirmation({ date: today, from: day('tue'), to: day('thu'), isToday: true, loggedToday: true })
     expect(c.title).toBe('Change Tue, Sep 29 from Lower A to Upper B?')
-    expect(c.body).toBe("What you logged today stays under today. Today's session ends as it stands, and Upper B starts as a second session today.")
+    expect(c.body).toBe("What you logged today stays under today. Today’s session ends as it stands, and Upper B starts as a second session today.")
   })
   it('today without logged sets does not', () => {
     expect(changeConfirmation({ date: today, from: day('tue'), to: day('thu'), isToday: true, loggedToday: false }).body).toBe('Nothing else moves; Restore puts this date back.')

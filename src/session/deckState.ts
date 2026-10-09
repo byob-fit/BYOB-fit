@@ -17,6 +17,8 @@ export interface DeckState {
   position: number | null
   /** What the in-progress bar shows under the workout, e.g. "Bench press, set 2 next". */
   label?: string
+  /** D-092 rule 2: the one running hold timer, by row key, with its start time (epoch ms). */
+  hold?: { key: string; startedAt: number }
 }
 
 export const DECK_STATE_PREFIX = 'deck:'
@@ -38,6 +40,7 @@ export function parseDeckState(sessionId: string, raw: string | undefined): Deck
       drafts: value.drafts && typeof value.drafts === 'object' ? (value.drafts as Record<string, string>) : {},
       position: typeof value.position === 'number' ? value.position : null,
       ...(typeof value.label === 'string' ? { label: value.label } : {}),
+      ...(value.hold && typeof value.hold.key === 'string' && typeof value.hold.startedAt === 'number' ? { hold: { key: value.hold.key, startedAt: value.hold.startedAt } } : {}),
     }
   } catch {
     return null

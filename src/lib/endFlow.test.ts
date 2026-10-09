@@ -71,15 +71,15 @@ describe('End (D-067 rule 2)', () => {
       }),
     )
     expect(html).toContain('role="dialog"')
-    expect(html).toContain('You&#x27;ve done the warm-up and 1 set of bench press. Everything logged so far is kept.')
+    expect(html).toContain('You’ve done the warm-up and 1 set of bench press. Everything logged so far is kept.')
     expect(html.indexOf('Keep going')).toBeLessThan(html.indexOf('End workout'))
   })
 
   it('the body names what was done, and says when nothing was', () => {
     expect(endDialogBody([])).toBe('Nothing is logged yet, so ending leaves today open.')
-    expect(endDialogBody([{ name: 'bench press', sets: 3 }, { name: 'plank' }])).toBe("You've done 3 sets of bench press and plank. Everything logged so far is kept.")
+    expect(endDialogBody([{ name: 'bench press', sets: 3 }, { name: 'plank' }])).toBe("You’ve done 3 sets of bench press and plank. Everything logged so far is kept.")
     expect(endDialogBody([{ name: 'a', sets: 2 }, { name: 'b', sets: 3 }, { name: 'c', sets: 1 }, { name: 'd', sets: 4 }, { name: 'w', warmup: true }])).toBe(
-      "You've done 10 sets across 4 exercises, and the warm-up. Everything logged so far is kept.",
+      "You’ve done 10 sets across 4 exercises, and the warm-up. Everything logged so far is kept.",
     )
   })
 })

@@ -147,7 +147,7 @@ function HowItWorks({ title, rows, onClose }: { title: string; rows: { weight?: 
           </div>
         ))}
         <p className="how__note">
-          The weights are judgement calls, not science. A part with no data drops out and the others fill its share. Worked out on your phone, never by the AI. Training,
+          The weights are judgment calls, not science. A part with no data drops out and the others fill its share. Worked out on your phone, never by the AI. Training,
           nutrition and body are never combined.
         </p>
         <button type="button" className="btn btn--primary" onClick={onClose}>
@@ -159,12 +159,12 @@ function HowItWorks({ title, rows, onClose }: { title: string; rows: { weight?: 
 }
 
 const TRAINING_HOW = [
-  { weight: '40%', head: 'Workouts done.', text: 'Planned workouts you finished, out of those planned. A workout counts once it has at least one logged set.' },
-  { weight: '30%', head: 'Sets done.', text: "Working sets you logged, out of those planned. Extra sets don't push it past 100%, and anything skipped through Felt off isn't held against you." },
+  { weight: '40%', head: 'Workouts done.', text: 'Workouts you finished, out of those planned. A workout counts once it has at least one logged set.' },
+  { weight: '30%', head: 'Sets done.', text: "Working sets you logged, out of those planned. Extra sets don’t push it past 100%, and anything skipped through Felt off isn’t held against you." },
   {
     weight: '30%',
     head: 'Progress.',
-    text: "Each exercise's top set against the last comparable one. Up counts fully, down counts nothing. Same counts half when your main goal is muscle or strength, and fully when it's fat loss or maintenance.",
+    text: "Each exercise’s top set against the last comparable one. Up counts fully, down counts nothing. Same counts half when your main goal is muscle or strength, and fully when it’s fat loss or maintenance.",
   },
 ]
 
@@ -172,7 +172,7 @@ const NUTRITION_HOW = [
   { weight: '25%', head: 'Days logged.', text: 'Days with meals logged, out of the days in the week.' },
   { weight: '35%', head: 'Calorie range.', text: 'Logged days within 10% of your calorie target. A day below the safety floor never counts as in range.' },
   { weight: '25%', head: 'Protein.', text: 'Logged days at or above your protein target.' },
-  { weight: '15%', head: 'Fibre.', text: 'Logged days at or above your fibre target: 14 g for every 1,000 kcal of your calorie target. AI estimates count, and are marked.' },
+  { weight: '15%', head: 'Fiber.', text: 'Logged days at or above your fiber target: 14 g for every 1,000 kcal of your calorie target. AI estimates count, and are marked.' },
 ]
 
 const BODY_HOW = [
@@ -368,7 +368,7 @@ function nutritionSentence(c: NutritionCounts, parts: ReturnType<typeof nutritio
   if (!c.hasEnergyTarget && !c.hasFibreTarget) return c.hasProteinTarget ? 'Scored on logging and protein only for now.' : 'Scored on logging only for now.'
   if (c.logged === 0) return 'Nothing logged this week.'
   const logging = c.logged === c.days ? 'Logged every day.' : c.logged >= c.days - 1 ? 'Logged almost every day.' : `Logged ${c.logged} of ${c.days} days.`
-  const names: Record<string, string> = { energy: 'The calorie range', protein: 'Protein', fibre: 'Fibre' }
+  const names: Record<string, string> = { energy: 'The calorie range', protein: 'Protein', fibre: 'Fiber' }
   const weakest = parts.filter((p) => p.key !== 'logging' && p.value !== null).sort((a, b) => (a.value as number) - (b.value as number))[0]
   return weakest && (weakest.value as number) < 0.5 ? `${logging} ${names[weakest.key]} is the gap.` : logging
 }
@@ -417,9 +417,9 @@ function NutritionView({ program, data, today, current }: { program: Program | n
         <Missing text="No protein target yet: add your weight in Goals" onAdd={() => navigate('/goal')} />
       )}
       {c.hasFibreTarget ? (
-        <PartBar text={`${c.atFibre} ${c.atFibre === 1 ? 'day' : 'days'} at fibre`} value={parts[3].value} />
+        <PartBar text={`${c.atFibre} ${c.atFibre === 1 ? 'day' : 'days'} at fiber`} value={parts[3].value} />
       ) : (
-        <Missing text="No fibre target yet: it comes from your calorie target" onAdd={() => navigate('/goal')} />
+        <Missing text="No fiber target yet: it comes from your calorie target" onAdd={() => navigate('/goal')} />
       )}
     </>
   )
@@ -435,10 +435,10 @@ function NutritionView({ program, data, today, current }: { program: Program | n
         { label: 'Days logged', value: `${c.logged} of ${c.days} days logged`, weight: 25 },
         { label: 'Calorie range', value: c.hasEnergyTarget ? `${c.inBand} days in range` : 'No calorie target', weight: 35 },
         { label: 'Protein', value: c.hasProteinTarget ? `${c.atProtein} days at protein` : 'No protein target', weight: 25 },
-        { label: 'Fibre', value: c.hasFibreTarget ? `${c.atFibre} days at fibre` : 'No fibre target', weight: 15 },
+        { label: 'Fiber', value: c.hasFibreTarget ? `${c.atFibre} days at fiber` : 'No fiber target', weight: 15 },
       ],
       data: nutritionWeekData(days, data.meals, targets, fibre),
-      summary: [{ label: 'Nutrition', value: 'Daily calories, protein, fibre and the other nutrients against targets; no food lines' }],
+      summary: [{ label: 'Nutrition', value: 'Daily calories, protein, fiber and the other nutrients against targets; no food lines' }],
     },
     data: { program: null, sessions: [], goals: data.goals, bodyEntries: data.body },
   })
@@ -496,7 +496,7 @@ function NutritionView({ program, data, today, current }: { program: Program | n
         />
         <DayLabels labels={letters} />
       </ChartCard>
-      <ChartCard title="Protein and fibre" aside="filled = at target">
+      <ChartCard title="Protein and fiber" aside="filled = at target">
         <DotRow label="Protein" days={allDays.map((d) => (!d.logged || targets.proteinG === undefined ? 'none' : d.atProtein ? 'at' : 'below'))} />
         <DotRow label="Fibre" days={allDays.map((d) => (!d.logged || fibre === undefined ? 'none' : d.atFibre ? 'at' : 'below'))} />
         <div className="dot-row">
@@ -519,8 +519,8 @@ function NutritionView({ program, data, today, current }: { program: Program | n
 }
 
 function missingNote(c: NutritionCounts): string {
-  const out = [!c.hasEnergyTarget && 'Calorie range', !c.hasProteinTarget && 'protein', !c.hasFibreTarget && 'fibre'].filter(Boolean) as string[]
-  const kept = ['logging', c.hasEnergyTarget && 'calorie range', c.hasProteinTarget && 'protein', c.hasFibreTarget && 'fibre'].filter(Boolean) as string[]
+  const out = [!c.hasEnergyTarget && 'Calorie range', !c.hasProteinTarget && 'protein', !c.hasFibreTarget && 'fiber'].filter(Boolean) as string[]
+  const kept = ['logging', c.hasEnergyTarget && 'calorie range', c.hasProteinTarget && 'protein', c.hasFibreTarget && 'fiber'].filter(Boolean) as string[]
   const list = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : items[0])
   const head = list(out)
   return `${head[0].toUpperCase()}${head.slice(1)} ${out.length > 1 ? 'drop' : 'drops'} out, and ${list(kept)} ${kept.length > 1 ? 'share their' : 'takes the'} weight until then.`
@@ -592,7 +592,7 @@ function BodyView({ program, data, current, units }: { program: Program | null; 
             <span className="score-card__week">Week {review} · body</span>
             <span className="score-card__sentence">
               {goal === 'lose_weight'
-                ? 'Trends only for now: a normal day-to-day range for weight is not sourced yet, so losing weight has no body score.'
+                ? 'Trends only for now: there’s no reliable day-to-day range for weight yet, so losing weight has no body score.'
                 : goal === null
                   ? 'Set a goal to get a body score. These are your trends.'
                   : 'Your main goal has no body score. These are your trends.'}

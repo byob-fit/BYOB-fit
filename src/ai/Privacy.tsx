@@ -10,7 +10,7 @@ import type { PrivacyLevel } from '../types/stores.ts'
 // D-044 as amended by D-084: body entries and a week's score go at every level.
 const TABLE: { label: string; cells: ('yes' | 'no' | 'opt')[] }[] = [
   { label: 'Workouts, program, goal, your rules', cells: ['yes', 'yes', 'yes'] },
-  { label: 'Body entries; a week review\'s score and parts', cells: ['yes', 'yes', 'yes'] },
+  { label: 'Body entries; a week review’s score and parts', cells: ['yes', 'yes', 'yes'] },
   { label: 'Experience level, "felt off" flags', cells: ['no', 'yes', 'yes'] },
   { label: 'Current weight', cells: ['no', 'no', 'yes'] },
   { label: 'Free-text session notes', cells: ['no', 'no', 'opt'] },
@@ -121,7 +121,7 @@ export function SendPreview({
             {sent.foods.length > 0 && <div className="preview-list__row preview-list__row--muted">Your saved foods, {sent.foods.length} with their numbers</div>}
             {sent.baseline.trim() !== '' && <div className="preview-list__row preview-list__row--muted">Your notes for the AI</div>}
           </div>
-          <p className="preview-small">Asking for: calories, protein, fibre, carbohydrate, fat, sodium, saturated fat, added sugars</p>
+          <p className="preview-small">Asking for: calories, protein, fiber, carbohydrate, fat, sodium, saturated fat, added sugars</p>
           <p className="preview-small">Sent with your own key · counts toward your monthly AI budget</p>
           {notice && (
             <div className="ai-budget" role="status">
@@ -135,7 +135,7 @@ export function SendPreview({
             </span>
           </button>
           {open && <pre className="ai-raw" aria-label="Exact message">{payload.message}</pre>}
-          {offline && <p className="preview-small preview-small--warn">You&apos;re offline. Everything works except AI.</p>}
+          {offline && <p className="preview-small preview-small--warn">You’re offline. Everything works except AI.</p>}
           <div className="preview-actions">
             <button type="button" className="btn btn--tertiary" onClick={onCancel}>
               Cancel
@@ -190,7 +190,7 @@ export function SendPreview({
             </span>
           </button>
           {open && <pre className="ai-raw" aria-label="Exact message">{payload.message}</pre>}
-          {offline && <p className="preview-small preview-small--warn">You&apos;re offline. Everything works except AI.</p>}
+          {offline && <p className="preview-small preview-small--warn">You’re offline. Everything works except AI.</p>}
           <div className="preview-actions">
             <button type="button" className="btn btn--tertiary" onClick={onCancel}>
               Cancel

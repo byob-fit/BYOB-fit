@@ -54,7 +54,7 @@ describe('Stepper (D-059 rule 5)', () => {
 
 describe('length hint (D-059 rule 5)', () => {
   it('shows only when editing past week 1 at the minimum length', () => {
-    expect(lengthHint(true, 8, 8)).toBe("You're in week 8, so the minimum is 8 weeks.")
+    expect(lengthHint(true, 8, 8)).toBe("You’re in week 8, so the minimum is 8 weeks.")
     expect(lengthHint(true, 8, 9)).toBeNull()
     expect(lengthHint(true, 8, 12)).toBeNull()
     expect(lengthHint(true, 1, 1)).toBeNull()

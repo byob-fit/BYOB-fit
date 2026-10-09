@@ -238,7 +238,7 @@ export function ExercisePicker({
         })}
         {results.length === 0 && (
           <div className="bd-hint" style={{ padding: '16px 0' }}>
-            No exercises match. Turn a filter off, or create one.
+            No exercises match. Turn a filter off, or create an exercise.
           </div>
         )}
         {allowCreate && (

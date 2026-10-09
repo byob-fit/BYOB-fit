@@ -135,7 +135,7 @@ describe('budget (D-085 rule 4, task 10c)', () => {
     }
   })
   it('over with the switch off shows a notice and continues', () => {
-    expect(budgetGate('over', 5.2, { ...budget, stopAtBudget: false })).toEqual({ kind: 'notice', text: "Over budget: this month's estimated cost is $5.20 of your $5.00 monthly budget." })
+    expect(budgetGate('over', 5.2, { ...budget, stopAtBudget: false })).toEqual({ kind: 'notice', text: "Over budget: this month’s estimated cost is $5.20 of your $5.00 monthly budget." })
   })
   it('warn shows a notice and continues, with the switch on or off', () => {
     expect(budgetGate('warn', 4.1, budget).kind).toBe('notice')

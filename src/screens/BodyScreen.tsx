@@ -371,7 +371,7 @@ export function BodyEntryScreen() {
       {confirm === 'delete' && editing && (
         <Dialog
           title={`Delete the entry for ${formatShortDate(editing)}?`}
-          body="This can't be undone."
+          body="This can’t be undone."
           confirmLabel="Delete"
           cancelLabel="Keep it"
           danger

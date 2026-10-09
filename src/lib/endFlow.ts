@@ -41,5 +41,5 @@ export function endDialogBody(done: DoneItem[]): string {
       : parts.length === 1
         ? parts[0]
         : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
-  return `You've done ${list}. Everything logged so far is kept.`
+  return `You’ve done ${list}. Everything logged so far is kept.`
 }

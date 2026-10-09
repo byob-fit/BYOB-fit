@@ -122,7 +122,7 @@ function byWeekRetiredErrors(program: Program): string[] {
 export function importProgram(value: unknown): ImportResult {
   if (!validate(value)) {
     const errors = (validate.errors ?? []).map(formatError)
-    return { ok: false, errors: errors.length ? errors : ['File is not a valid program.'] }
+    return { ok: false, errors: errors.length ? errors : ['This file isn’t a valid program.'] }
   }
   const errors = [
     ...startDateErrors(value),
