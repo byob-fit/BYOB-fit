@@ -1,6 +1,7 @@
 // Today in the v3 design (frames 2.01 before start, 2.02 in progress, 2.03
 // done; D-083): the day's card with its one action, then the day's items.
 
+import { aOrAn } from '../lib/article.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -379,7 +380,7 @@ export function TodayScreen() {
         <h1 className="today-card__title">{name}</h1>
         <p className="today-card__sub">
           {count(deck.filter((d) => d.logged && d.resolved.type !== 'check').length, 'exercise')} · {count(totalSets, 'set')}
-          {warmup ? ` after a ${warmup.resolved.minutes} min warm-up` : day.durationMin ? ` · about ${day.durationMin} min` : ''}
+          {warmup ? ` after ${aOrAn(warmup.resolved.minutes ?? 0)} ${warmup.resolved.minutes} min warm-up` : day.durationMin ? ` · about ${day.durationMin} min` : ''}
         </p>
         <button type="button" className="btn btn--primary" onClick={() => void enterDeck()}>
           Start workout

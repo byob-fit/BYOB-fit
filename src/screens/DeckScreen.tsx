@@ -72,6 +72,7 @@ import { PlanSheet } from './PlanSheet.tsx'
 import { useProgram } from '../program/useProgram.ts'
 import { clearDeckState, readDeckState, writeDeckState } from '../session/deckState.ts'
 import { needsCentring } from '../lib/deckScroll.ts'
+import { aOrAn } from '../lib/article.ts'
 import { useSession } from '../session/useSession.ts'
 import { useSettings } from '../settings/useSettings.ts'
 import type { Exercise, ItemFields } from '../types/program.ts'
@@ -1521,7 +1522,7 @@ function Deck() {
                   }
                 }}
               >
-                {cardioStart ? `Stop the timer, ${formatClock((now - cardioStart) / 1000)}` : `Start a ${current.resolved.minutes ?? cardioMinutes} min timer`}
+                {cardioStart ? `Stop the timer, ${formatClock((now - cardioStart) / 1000)}` : `Start ${aOrAn(current.resolved.minutes ?? cardioMinutes)} ${current.resolved.minutes ?? cardioMinutes} min timer`}
               </button>
             </div>
             <textarea

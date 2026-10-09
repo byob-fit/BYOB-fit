@@ -392,7 +392,7 @@ function fieldValue(
   key: string,
   value: unknown,
 ): string {
-  if (value === undefined) return '—'
+  if (value === undefined) return '–'
   if (typeof value === 'boolean') return value ? 'yes' : 'no'
   if (key === 'exerciseId' || key === 'alternateExerciseId') {
     return program.exercises[String(value)]?.name ?? String(value)

@@ -89,7 +89,7 @@ export function ImportScreen() {
       {errors.length > 0 && !fileFailed && (
         <div className="errors">
           <div className="errors__title">
-            {errors.length === 1 ? '1 problem' : `${errors.length} problems`} — nothing was saved
+            {errors.length === 1 ? '1 problem' : `${errors.length} problems`}, so nothing was saved
           </div>
           <ul className="errors__list">
             {errors.map((error, i) => (

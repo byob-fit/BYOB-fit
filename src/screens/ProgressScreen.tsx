@@ -498,7 +498,7 @@ function NutritionView({ program, data, today, current }: { program: Program | n
       </ChartCard>
       <ChartCard title="Protein and fiber" aside="filled = at target">
         <DotRow label="Protein" days={allDays.map((d) => (!d.logged || targets.proteinG === undefined ? 'none' : d.atProtein ? 'at' : 'below'))} />
-        <DotRow label="Fibre" days={allDays.map((d) => (!d.logged || fibre === undefined ? 'none' : d.atFibre ? 'at' : 'below'))} />
+        <DotRow label="Fiber" days={allDays.map((d) => (!d.logged || fibre === undefined ? 'none' : d.atFibre ? 'at' : 'below'))} />
         <div className="dot-row">
           <span className="dot-row__label" />
           <DayLabels labels={letters} />
