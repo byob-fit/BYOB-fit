@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import { listPrograms, saveProgram, setActiveProgram } from '../db/index.ts'
+import { activateProgram, listPrograms, saveProgram } from '../db/index.ts'
 import { BuilderEntry } from '../builder/BuilderEntry.tsx'
 import { readDraft } from '../builder/draft.ts'
 import { StarterReview } from '../builder/StarterReview.tsx'
@@ -24,8 +24,8 @@ import { ImportErrorState } from '../ui/StateBlock.tsx'
 async function saveAsNew(program: Program): Promise<void> {
   const ids = (await listPrograms()).map((p) => p.id)
   const saved = { ...program, id: uniqueProgramId(program.id, ids) }
-  await saveProgram(saved)
-  await setActiveProgram(saved.id)
+  // D-095: a new program from the builder joins the program list.
+  await activateProgram(saved)
 }
 
 export function EditProgramScreen() {

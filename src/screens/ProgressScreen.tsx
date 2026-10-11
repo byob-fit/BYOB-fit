@@ -4,18 +4,19 @@
 // Training also holds the exercise list, history and set editing that were
 // the Log tab, unchanged in behaviour.
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useWeekReview } from '../ai/useWeekReview.tsx'
 import { Sheet } from '../builder/ui.tsx'
-import { getGoals, listAllSessions, listBodyEntries, listMealDays } from '../db/index.ts'
+import { getGoals, getProgramHistory, listAllSessions, listBodyEntries, listMealDays, listPrograms } from '../db/index.ts'
 import { BODY_FIELDS, formatValue, unitLabel, valueIn, type BodyField } from '../lib/body.ts'
 import { NOT_TAGGED, bodySeries, indexExerciseIds, oneRepMaxSeries, sevenDayAverage, setsPerMuscle } from '../lib/charts.ts'
 import { toISODate } from '../lib/dates.ts'
 import { aiEstimated } from '../lib/mealLocal.ts'
 import { SODIUM_LIMIT_MG, energyBand, fibreTarget } from '../lib/nutrients.ts'
-import { dayForDate, weekDates } from '../lib/program.ts'
+import { dayForDate } from '../lib/program.ts'
+import { historyOrActive, segments, sessionsOfNumber, weekRefs, type ProgramEntry, type Segment, type WeekRef } from '../lib/programHistory.ts'
 import {
   bodyComparison,
   bodyMeasures,
@@ -71,14 +72,38 @@ interface Data {
   meals: MealDay[]
   body: BodyEntry[]
   goals: Goals | null
+  programs: Program[]
+  history: ProgramEntry[]
+}
+
+/** D-095: every week across programs (rules 3 and 6), and the one under review. */
+interface Timeline {
+  history: ProgramEntry[]
+  segs: Segment[]
+  refs: WeekRef[]
+  /** The week reviewed: the last finished week, or week 1 while it is the only one. */
+  review: WeekRef
+  reviewIndex: number
+  first: boolean
+}
+
+function timelineOf(program: Program, data: Data, today: Date): Timeline {
+  const programs = [...data.programs.filter((p) => p.id !== program.id), program]
+  let history = historyOrActive(data.history, program)
+  if (history[history.length - 1]?.programId !== program.id) history = historyOrActive([], program)
+  const segs = segments(history, programs)
+  const refs = weekRefs(segs, today)
+  const first = refs.length <= 1
+  const reviewIndex = first ? 0 : refs.length - 2
+  return { history, segs, refs, review: refs[reviewIndex], reviewIndex, first }
 }
 
 function useData(): Data | null {
   const [data, setData] = useState<Data | null>(null)
   useEffect(() => {
     let live = true
-    void Promise.all([listAllSessions(), listMealDays(), listBodyEntries(), getGoals()]).then(([sessions, meals, body, goals]) => {
-      if (live) setData({ sessions, meals, body, goals: goals ?? null })
+    void Promise.all([listAllSessions(), listMealDays(), listBodyEntries(), getGoals(), listPrograms(), getProgramHistory()]).then(([sessions, meals, body, goals, programs, history]) => {
+      if (live) setData({ sessions, meals, body, goals: goals ?? null, programs, history })
     })
     return () => {
       live = false
@@ -88,7 +113,7 @@ function useData(): Data | null {
 }
 
 /** The score card: the ring, the week, a sentence and the trend (3.09). */
-function ScoreCard({ score, week, view, sentence, trend }: { score: number | null; week: number; view: ProgressView; sentence: string; trend?: (number | null)[] }) {
+function ScoreCard({ score, label, view, sentence, trend }: { score: number | null; label: string; view: ProgressView; sentence: string; trend?: (number | null)[] }) {
   return (
     <section className="card-v3 score-card">
       {score !== null ? (
@@ -99,7 +124,7 @@ function ScoreCard({ score, week, view, sentence, trend }: { score: number | nul
       ) : null}
       <div className="score-card__text">
         <span className="score-card__week">
-          Week {week} · {view}
+          {label} · {view}
         </span>
         <span className="score-card__sentence">{sentence}</span>
         {trend && <Sparkline values={trend} />}
@@ -205,27 +230,27 @@ function trainingWords(c: TrainingCounts) {
   }
 }
 
-function TrainingView({ program, data, today, current, changes, units }: { program: Program; data: Data; today: Date; current: number; changes: DayChange[]; units: string }) {
+function TrainingView({ program, t, data, today, changes, units }: { program: Program; t: Timeline; data: Data; today: Date; changes: DayChange[]; units: string }) {
   const navigate = useNavigate()
   const [how, setHow] = useState(false)
-  const review = Math.max(1, current - 1)
   const goal = mainGoal(data.goals)
   // D-089: dates before the first finished workout are Not started and not counted.
   const start = trainingStart(data.sessions)
-  const counts = (week: number) => trainingCounts({ program, changes, sessions: data.sessions, week, today, start })
-  const first = current <= 1
-  const c = counts(first ? 1 : review)
+  // D-095 rule 3: each week is read against its own program and only that program's sessions.
+  const counts = (r: WeekRef) => trainingCounts({ program: r.program, changes, sessions: sessionsOfNumber(data.sessions, r.n, t.history, t.segs), week: r.week, today, start, until: r.until })
+  const { first, review } = t
+  const c = counts(review)
   const parts = trainingParts(c, goal)
   const score = first ? null : combine(parts)
   const w = trainingWords(c)
-  const dates = weekDates(program, review).map(toISODate)
+  const dates = review.dates.map(toISODate)
   // D-081: the week's score, its parts and the underlying data, at the user's level.
   const ai = useWeekReview({
     enabled: !first,
     review: {
       view: 'training',
       weekStart: dates[0],
-      programWeek: review,
+      programWeek: review.week,
       score,
       parts: [
         { label: 'Workouts done', value: w.adherence, weight: 40 },
@@ -238,7 +263,7 @@ function TrainingView({ program, data, today, current, changes, units }: { progr
         { label: 'Lifts', value: 'Sets logged this week, with dates' },
       ],
     },
-    data: { program: programFor('training', program), sessions: weekSessions(data.sessions, dates), goals: data.goals, bodyEntries: data.body },
+    data: { program: programFor('training', review.program), sessions: weekSessions(data.sessions, dates), goals: data.goals, bodyEntries: data.body },
   })
   if (ai.picking) return <>{ai.element}</>
 
@@ -251,17 +276,17 @@ function TrainingView({ program, data, today, current, changes, units }: { progr
           <PartBar text={w.completeness} value={c.prescribed ? c.confirmed / c.prescribed : null} />
         </FirstWeek>
         <p className="note-v3">Progress needs last week to compare with. It starts in week 2.</p>
-        <TrainingCharts program={program} data={data} today={today} review={1} current={current} changes={changes} units={units} />
+        <TrainingCharts program={program} t={t} data={data} today={today} changes={changes} units={units} />
         <LogScreen embedded />
       </>
     )
   }
 
-  const trend = Array.from({ length: review }, (_, i) => combine(trainingParts(counts(i + 1), goal)))
+  const trend = t.refs.slice(0, t.reviewIndex + 1).map((r) => combine(trainingParts(counts(r), goal)))
   return (
     <>
       {ai.element}
-      <ScoreCard score={score} week={review} view="training" sentence={trendSentence(score, review > 1 ? trend[review - 2] : null)} trend={trend} />
+      <ScoreCard score={score} label={review.label} view="training" sentence={trendSentence(score, t.reviewIndex > 0 ? trend[t.reviewIndex - 1] : null)} trend={trend} />
       {ai.notes}
       <section className="card-v3 parts">
         <PartBar text={w.adherence} value={parts[0].value} />
@@ -273,28 +298,30 @@ function TrainingView({ program, data, today, current, changes, units }: { progr
         </button>
       </section>
       {ai.button}
-      <TrainingCharts program={program} data={data} today={today} review={review} current={current} changes={changes} units={units} />
+      <TrainingCharts program={program} t={t} data={data} today={today} changes={changes} units={units} />
       <LogScreen embedded />
       {how && <HowItWorks title="How the training score works" rows={TRAINING_HOW} onClose={() => setHow(false)} />}
     </>
   )
 }
 
-function TrainingCharts({ program, data, today, review, current, changes, units }: { program: Program; data: Data; today: Date; review: number; current: number; changes: DayChange[]; units: string }) {
+function TrainingCharts({ program, t, data, today, changes, units }: { program: Program; t: Timeline; data: Data; today: Date; changes: DayChange[]; units: string }) {
+  const review = t.review
+  const current = t.refs[t.refs.length - 1].week
+  // D-095 rule 4: lift lines run across programs; an exercise no longer in the program keeps its name.
+  const nameOf = (id: string) => program.exercises[id]?.name ?? data.programs.find((p) => p.exercises[id])?.exercises[id]?.name ?? id
   // Estimated one-rep max per lift: the index lifts, or the three most logged load lifts.
   const index = [...indexExerciseIds(program, current)]
   const logged = new Map<string, number>()
   for (const s of data.sessions) for (const e of s.entries) if (e.sets.some((x) => x.weight !== undefined)) logged.set(e.exerciseId, (logged.get(e.exerciseId) ?? 0) + 1)
   const lifts = (index.length ? index : [...logged.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)).slice(0, 4)
-  const series = lifts.map((id) => ({ id, name: program.exercises[id]?.name ?? id, points: oneRepMaxSeries(data.sessions, id) })).filter((s) => s.points.length > 0)
+  const series = lifts.map((id) => ({ id, name: nameOf(id), points: oneRepMaxSeries(data.sessions, id) })).filter((s) => s.points.length > 0)
   const unit = program.days.flatMap((d) => d.sections.flatMap((s) => s.items)).find((i) => i.unit)?.unit ?? units
 
-  const weekIso = weekDates(program, review).map(toISODate)
-  const weekSessions = data.sessions.filter((s) => weekIso.includes(s.date) && isFinishedSession(s))
-  const muscles = setsPerMuscle(weekSessions, program)
+  const weekIso = review.dates.map(toISODate)
+  const weekSessions = sessionsOfNumber(data.sessions, review.n, t.history, t.segs).filter((s) => weekIso.includes(s.date) && isFinishedSession(s))
+  const muscles = setsPerMuscle(weekSessions, review.program)
   const most = Math.max(1, ...muscles.map((m) => m.sets))
-
-  const weeks = Array.from({ length: Math.min(current, program.programWeeks) }, (_, i) => i + 1)
   const todayIso = toISODate(today)
   const start = trainingStart(data.sessions)
   return (
@@ -316,7 +343,7 @@ function TrainingCharts({ program, data, today, review, current, changes, units 
           ))
         )}
       </ChartCard>
-      <ChartCard title="Working sets by muscle group" aside={`Week ${review}`}>
+      <ChartCard title="Working sets by muscle group" aside={review.label}>
         {muscles.length === 0 ? (
           <p className="chart-empty">No finished workouts this week.</p>
         ) : (
@@ -344,20 +371,25 @@ function TrainingCharts({ program, data, today, review, current, changes, units 
         ]}
       >
         <div className="calendar" role="img" aria-label="Workouts done by week">
-          {weeks.map((week) => (
-            <div className="calendar__row" key={week}>
-              <span className="calendar__week">{week}</span>
-              {weekDates(program, week).map((date) => {
+          {t.refs.map((r) => (
+            <Fragment key={`${r.n}-${r.week}`}>
+            {r.heading && <div className="calendar__program">{r.heading}</div>}
+            <div className="calendar__row">
+              <span className="calendar__week">{r.short}</span>
+              {r.dates.map((date) => {
                 const iso = toISODate(date)
-                const day = dayForDate(program, changes, date)
-                const done = isFinishedSession(data.sessions.find((s) => s.date === iso && s.dayId === day.id))
+                const day = dayForDate(r.program, changes, date)
+                // D-095 rule 3: a date in the next program's time shows as a rest cell in this row.
+                const ours = !r.until || iso < r.until
+                const done = isFinishedSession(sessionsOfNumber(data.sessions, r.n, t.history, t.segs).find((s) => s.date === iso && s.dayId === day.id))
                 // Today is still to come until it is done.
                 const state = day.rest ? 'rest' : done ? 'done' : iso >= todayIso ? 'future' : start === null || iso < start ? 'notstarted' : 'missed'
-                return <span key={iso} className={`calendar__cell calendar__cell--${state}`} />
+                return <span key={iso} className={`calendar__cell calendar__cell--${ours ? state : 'rest'}`} />
               })}
             </div>
+            </Fragment>
           ))}
-          <DayLabels labels={weekDates(program, 1).map((d) => DAY_LETTER.format(d))} />
+          <DayLabels labels={t.refs[t.refs.length - 1].dates.map((d) => DAY_LETTER.format(d))} />
         </div>
       </ChartCard>
     </>
@@ -373,31 +405,32 @@ function nutritionSentence(c: NutritionCounts, parts: ReturnType<typeof nutritio
   return weakest && (weakest.value as number) < 0.5 ? `${logging} ${names[weakest.key]} is the gap.` : logging
 }
 
-function NutritionView({ program, data, today, current }: { program: Program | null; data: Data; today: Date; current: number }) {
+function NutritionView({ program, t, data, today }: { program: Program | null; t: Timeline | null; data: Data; today: Date }) {
   const navigate = useNavigate()
   const [how, setHow] = useState(false)
   const targets = computeTargets(data.goals, data.body, toISODate(today))
   const fibre = fibreTarget(targets.kcal, data.goals?.currentStats)
-  const review = Math.max(1, current - 1)
   // D-089: days before the first logged meal day are Not started and not counted.
   const mealStart = nutritionStart(data.meals)
-  const datesOf = (week: number) => {
-    if (program) return countedDates(weekDates(program, week), today, mealStart).map(toISODate)
+  // D-095 rule 3: a week's days end where the next program starts.
+  const datesOf = (r: WeekRef | null) => {
+    if (r) return countedDates(r.dates, today, mealStart).filter((d) => !r.until || toISODate(d) < r.until).map(toISODate)
     const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() - 7)
     return Array.from({ length: 7 }, (_, i) => toISODate(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)))
   }
-  const first = Boolean(program) && current <= 1
-  const week = first ? 1 : review
-  const dates = datesOf(week)
+  const first = Boolean(t?.first)
+  const ref = t?.review ?? null
+  const label = ref?.label ?? 'Week 1'
+  const dates = datesOf(ref)
   const days = nutritionDays(dates, data.meals, targets, fibre)
   const c = nutritionCounts(days, targets, fibre)
   const parts = nutritionParts(c)
   const score = first ? null : combine(parts)
-  const trend = program && !first ? Array.from({ length: review }, (_, i) => combine(nutritionParts(nutritionCounts(nutritionDays(datesOf(i + 1), data.meals, targets, fibre), targets, fibre)))) : undefined
+  const trend = t && !first ? t.refs.slice(0, t.reviewIndex + 1).map((r) => combine(nutritionParts(nutritionCounts(nutritionDays(datesOf(r), data.meals, targets, fibre), targets, fibre)))) : undefined
   const weekItems = data.meals.filter((m) => dates.includes(m.date)).flatMap((m) => m.parsed?.items ?? [])
   const hasAi = aiEstimated(weekItems, 'fibreG') || aiEstimated(weekItems, 'kcal')
   const band = targets.kcal !== undefined ? energyBand(targets.kcal, targets.floor ?? 0) : undefined
-  const fullDates = program ? weekDates(program, week) : dates.map((d) => new Date(`${d}T12:00:00`))
+  const fullDates = ref ? ref.dates : dates.map((d) => new Date(`${d}T12:00:00`))
   const allDays = nutritionDays(fullDates.map(toISODate), data.meals, targets, fibre)
   const letters = fullDates.map((d) => DAY_LETTER.format(d))
   const kcalMax = Math.max(targets.kcal ? targets.kcal * 1.25 : 0, ...allDays.map((d) => d.kcal ?? 0), 1)
@@ -429,7 +462,7 @@ function NutritionView({ program, data, today, current }: { program: Program | n
     review: {
       view: 'nutrition',
       weekStart: fullDates.map(toISODate)[0],
-      ...(program ? { programWeek: week } : {}),
+      ...(ref ? { programWeek: ref.week } : {}),
       score,
       parts: [
         { label: 'Days logged', value: `${c.logged} of ${c.days} days logged`, weight: 25 },
@@ -454,7 +487,7 @@ function NutritionView({ program, data, today, current }: { program: Program | n
         </FirstWeek>
       ) : (
         <>
-          <ScoreCard score={score} week={week} view="nutrition" sentence={nutritionSentence(c, parts)} trend={trend} />
+          <ScoreCard score={score} label={label} view="nutrition" sentence={nutritionSentence(c, parts)} trend={trend} />
           {ai.notes}
           <section className="card-v3 parts">
             {partRows}
@@ -544,11 +577,12 @@ function bodySentence(comparison: BodyComparison): string {
   return `${text[0].toUpperCase()}${text.slice(1)}.`
 }
 
-function BodyView({ program, data, current, units }: { program: Program | null; data: Data; current: number; units: 'kg' | 'lb' }) {
+function BodyView({ program, t, data, units }: { program: Program | null; t: Timeline | null; data: Data; units: 'kg' | 'lb' }) {
   const navigate = useNavigate()
   const [how, setHow] = useState(false)
-  const review = Math.max(1, current - 1)
-  const asOf = program ? toISODate(weekDates(program, review)[6]) : undefined
+  const ref = t?.review ?? null
+  const label = ref?.label ?? 'Week 1'
+  const asOf = ref ? toISODate(ref.dates[6]) : undefined
   const measures = bodyMeasures(data.goals)
   const comparison = bodyComparison(data.body, measures, units, asOf)
   const score = bodyScore(comparison)
@@ -563,8 +597,8 @@ function BodyView({ program, data, current, units }: { program: Program | null; 
     enabled: data.body.length > 0 && Boolean(program),
     review: {
       view: 'body',
-      weekStart: program ? toISODate(weekDates(program, review)[0]) : '',
-      ...(program ? { programWeek: review } : {}),
+      weekStart: ref ? toISODate(ref.dates[0]) : '',
+      ...(ref ? { programWeek: ref.week } : {}),
       score,
       parts: comparison ? shownMeasures(comparison).map((m) => ({ label: MEASURE_NAME[m.measure], value: `${m.change > 0 ? '+' : ''}${m.change} (${m.beyond ? 'beyond' : 'within'} normal day-to-day change)` })) : [],
       data: bodyWeekData(comparison),
@@ -589,7 +623,7 @@ function BodyView({ program, data, current, units }: { program: Program | null; 
       {measures.length === 0 ? (
         <section className="card-v3 score-card score-card--empty">
           <div className="score-card__text">
-            <span className="score-card__week">Week {review} · body</span>
+            <span className="score-card__week">{label} · body</span>
             <span className="score-card__sentence">
               {goal === 'lose_weight'
                 ? 'Trends only for now: there’s no reliable day-to-day range for weight yet, so losing weight has no body score.'
@@ -601,7 +635,7 @@ function BodyView({ program, data, current, units }: { program: Program | null; 
         </section>
       ) : comparison ? (
         <>
-          <ScoreCard score={score} week={review} view="body" sentence={bodySentence(comparison)} />
+          <ScoreCard score={score} label={label} view="body" sentence={bodySentence(comparison)} />
           {ai.notes}
           <section className="card-v3 parts">
             {shownMeasures(comparison).map((m) => (
@@ -618,7 +652,7 @@ function BodyView({ program, data, current, units }: { program: Program | null; 
       ) : (
         <section className="card-v3 score-card score-card--empty">
           <div className="score-card__text">
-            <span className="score-card__week">Week {review} · body</span>
+            <span className="score-card__week">{label} · body</span>
             <span className="score-card__sentence">The body score needs two entries about four weeks apart.</span>
           </div>
         </section>
@@ -678,11 +712,11 @@ function BodyView({ program, data, current, units }: { program: Program | null; 
 
 /** Progress > Training, Nutrition or Body. */
 export function ProgressScreen({ view }: { view: ProgressView }) {
-  const { program, today, week, changes } = useProgram()
+  const { program, today, changes } = useProgram()
   const { settings, loading } = useSettings()
   const data = useData()
-  const current = program ? week : 2
-  const context = program ? (week <= 1 ? 'Week 1 so far' : `Week ${week - 1} review`) : undefined
+  const t = useMemo(() => (program && data ? timelineOf(program, data, today) : null), [program, data, today])
+  const context = t ? (t.first ? 'Week 1 so far' : `${t.review.label} review`) : undefined
   return (
     <div className="screen">
       <ProgressHeader view={view} context={context} />
@@ -690,12 +724,12 @@ export function ProgressScreen({ view }: { view: ProgressView }) {
         <>
           {view === 'training' &&
             (program ? (
-              <TrainingView program={program} data={data} today={today} current={current} changes={changes} units={unitsOf(settings)} />
+              <TrainingView program={program} t={t!} data={data} today={today} changes={changes} units={unitsOf(settings)} />
             ) : (
               <EmptyState title="No program yet" body="Your training score appears once you have a program and a full week behind you." />
             ))}
-          {view === 'nutrition' && <NutritionView program={program} data={data} today={today} current={current} />}
-          {view === 'body' && <BodyView program={program} data={data} current={current} units={unitsOf(settings)} />}
+          {view === 'nutrition' && <NutritionView program={program} t={t} data={data} today={today} />}
+          {view === 'body' && <BodyView program={program} t={t} data={data} units={unitsOf(settings)} />}
         </>
       )}
     </div>

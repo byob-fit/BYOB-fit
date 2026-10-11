@@ -126,11 +126,13 @@ export function trainingCounts(input: {
   week: number
   today: Date
   start?: string | null
+  /** D-095 rule 3: dates from here on belong to the next program (YYYY-MM-DD, exclusive). */
+  until?: string | null
 }): TrainingCounts {
-  const { program, changes, sessions, week, today, start } = input
+  const { program, changes, sessions, week, today, start, until } = input
   const counts: TrainingCounts = { planned: 0, finished: 0, prescribed: 0, confirmed: 0, up: 0, same: 0, down: 0, newCount: 0 }
   const finishedSessions: { session: Session; day: Day }[] = []
-  for (const date of countedDates(weekDates(program, week), today, start)) {
+  for (const date of countedDates(weekDates(program, week), today, start).filter((d) => !until || toISODate(d) < until)) {
     const day = dayForDate(program, changes, date)
     if (day.rest) continue
     counts.planned += 1

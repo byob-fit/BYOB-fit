@@ -9,9 +9,8 @@ import {
   getSettings,
   listPrograms,
   saveGoals,
-  saveProgram,
   saveSettings,
-  setActiveProgram,
+  activateProgram,
 } from '../db/index.ts'
 import { toISODate } from '../lib/dates.ts'
 import {
@@ -165,9 +164,9 @@ export function OnboardingScreen() {
               ? // Built in step 4 before units were chosen: loads take the chosen unit.
                 { ...applyUnit(chosenProgram, units), id: uniqueProgramId(chosenProgram.id, existing) }
               : { ...chosenProgram, id: uniqueProgramId(chosenProgram.id, existing) }
-        await saveProgram(saved)
         stage.name = 'active program'
-        await setActiveProgram(saved.id)
+        // D-095: the first program starts the program list.
+        await activateProgram(saved)
       }
       if (answers.goals.length > 0) {
         stage.name = 'goals'

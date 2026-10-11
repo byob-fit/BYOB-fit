@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { saveProgram, setActiveProgram } from '../db/index.ts'
+import { activateProgram } from '../db/index.ts'
 import { importProgramText } from '../lib/importProgram.ts'
 import { recordStoragePersistence } from '../lib/storage.ts'
 import { useProgram } from '../program/useProgram.ts'
@@ -19,8 +19,8 @@ export function ImportScreen() {
   const [fileName, setFileName] = useState<string | null>(null)
 
   async function activate(program: Program) {
-    await saveProgram(program)
-    await setActiveProgram(program.id)
+    // D-095 rules 2 and 7: never overwrites a stored program; the list numbers it.
+    await activateProgram(program)
     // First successful import asks for persistent storage; never blocks.
     void recordStoragePersistence()
     await refresh()

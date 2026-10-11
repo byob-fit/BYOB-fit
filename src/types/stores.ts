@@ -57,6 +57,8 @@ export interface Session {
   date: string
   dayId: string
   programWeek: number
+  /** D-095 rule 1: the stored program (its version) this session was logged under. */
+  programId?: string
   startedAt?: string
   endedAt?: string
   swapped?: boolean

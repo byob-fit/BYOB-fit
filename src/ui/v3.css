@@ -2094,6 +2094,13 @@ select {
   padding-left: 0;
 }
 
+/* D-095 rule 6: a program's name above its first week, once there is more than one. */
+.calendar__program {
+  font-size: 12px;
+  color: var(--ink-2);
+  margin: 6px 0 2px;
+}
+
 .calendar__week {
   width: 22px;
   font-size: 12px;

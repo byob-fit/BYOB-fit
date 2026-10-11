@@ -14,6 +14,8 @@ export interface SessionTarget {
   date: string
   dayId: string
   programWeek: number
+  /** D-095 rule 1: the active program's stored id. */
+  programId?: string
   swapped: boolean
 }
 
@@ -60,6 +62,7 @@ function blank(target: SessionTarget): Session {
     date: target.date,
     dayId: target.dayId,
     programWeek: target.programWeek,
+    ...(target.programId ? { programId: target.programId } : {}),
     startedAt: new Date().toISOString(),
     swapped: target.swapped,
     entries: [],

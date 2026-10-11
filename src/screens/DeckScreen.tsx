@@ -224,8 +224,8 @@ function Deck() {
   const isNew = settings.onboarding?.experience === 'new'
 
   const target = useMemo(
-    () => (day ? { date: todayIso, dayId: day.id, programWeek: week, swapped } : null),
-    [day, todayIso, week, swapped],
+    () => (day ? { date: todayIso, dayId: day.id, programWeek: week, swapped, programId: program?.id } : null),
+    [day, todayIso, week, swapped, program?.id],
   )
   const api = useSession(target)
   const sessionId = day ? sessionIdFor(todayIso, day.id) : null

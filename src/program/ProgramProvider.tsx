@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 
-import { deleteDayChange, getActiveProgram, getDayChanges, putDayChange } from '../db/index.ts'
+import { deleteDayChange, ensureProgramStamps, getActiveProgram, getDayChanges, putDayChange } from '../db/index.ts'
 import { toISODate } from '../lib/dates.ts'
 import { canChangeDate } from '../lib/dayChanges.ts'
 import { currentWeek, parseISODate } from '../lib/program.ts'
@@ -17,6 +17,8 @@ export function ProgramProvider({ children }: { children: ReactNode }) {
   const [today] = useState(() => new Date())
 
   const read = useCallback(async (): Promise<Loaded> => {
+    // D-095: stamp sessions saved before the program list existed (safe on every load).
+    await ensureProgramStamps()
     const active = (await getActiveProgram()) ?? null
     return { program: active, changes: await getDayChanges() }
   }, [])

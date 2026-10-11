@@ -30,6 +30,8 @@ import { LogHistory } from './LogHistory.tsx'
 import { indexExerciseIds } from '../lib/charts.ts'
 import { unitsOf } from '../settings/defaults.ts'
 import { useSettings } from '../settings/useSettings.ts'
+import { getProgramHistory } from '../db/index.ts'
+import { historyOrActive, numberOfSession, segments, type ProgramEntry } from '../lib/programHistory.ts'
 
 
 
@@ -189,7 +191,7 @@ function unitFor(program: Program, exerciseId: string, fallback: string): string
   return fallback
 }
 
-function WeekPicker({ label, value, weeks, onChange }: { label: string; value: number | null; weeks: number[]; onChange: (week: number) => void }) {
+function WeekPicker({ label, value, weeks, onChange, labelOf }: { label: string; value: number | null; weeks: number[]; onChange: (week: number) => void; labelOf: (week: number) => string }) {
   return (
     <div>
       <div style={{ fontSize: 12, color: 'var(--secondary)', marginBottom: 4 }}>{label}</div>
@@ -198,7 +200,7 @@ function WeekPicker({ label, value, weeks, onChange }: { label: string; value: n
           {value === null && <option value="">None</option>}
           {[...weeks].sort((a, b) => a - b).map((w) => (
             <option key={w} value={w}>
-              Week {w}
+              {labelOf(w)}
             </option>
           ))}
         </select>
@@ -212,7 +214,24 @@ export function ExerciseLogScreen() {
   const { settings } = useSettings()
   const { exerciseId = '' } = useParams()
   const navigate = useNavigate()
-  const [sessions, reloadSessions] = useSessionsWithReload()
+  const [rawSessions, reloadSessions] = useSessionsWithReload()
+  // D-095 rule 6: with more than one program, weeks are told apart by program;
+  // a week's key is program number × 1000 + week, shown as "Program 2 · Week 1".
+  const [programList, setProgramList] = useState<{ history: ProgramEntry[]; programs: Program[] } | null>(null)
+  useEffect(() => {
+    void Promise.all([getProgramHistory(), listPrograms()]).then(([h, programs]) => setProgramList({ history: h, programs }))
+  }, [])
+  const timeline = useMemo(() => {
+    if (!program || !programList) return null
+    const history = historyOrActive(programList.history, program)
+    const segs = segments(history, [...programList.programs.filter((p) => p.id !== program.id), program])
+    return segs.length > 1 ? { history, segs } : null
+  }, [program, programList])
+  const sessions = useMemo(
+    () => (timeline ? rawSessions.map((s) => ({ ...s, programWeek: (numberOfSession(s, timeline.history, timeline.segs) ?? 1) * 1000 + s.programWeek })) : rawSessions),
+    [rawSessions, timeline],
+  )
+  const weekLabel = (key: number) => (timeline ? `Program ${Math.floor(key / 1000)} · Week ${key % 1000}` : `Week ${key}`)
   const history = useMemo(() => buildExerciseLog(sessions), [sessions])
   const names = useExerciseNames(program)
   const weeks = useMemo(() => weeksWithExercise(sessions, exerciseId), [sessions, exerciseId])
@@ -250,15 +269,15 @@ export function ExerciseLogScreen() {
           ) : (
           <>
           <div className="lg-pickers">
-            <WeekPicker label="Compare" value={from} weeks={weeks} onChange={(w) => setPicked({ from: w, to })} />
+            <WeekPicker label="Compare" value={from} weeks={weeks} labelOf={weekLabel} onChange={(w) => setPicked({ from: w, to })} />
             <span className="lg-pickers__vs">vs</span>
-            <WeekPicker label="with" value={to} weeks={weeks} onChange={(w) => setPicked({ from, to: w })} />
+            <WeekPicker label="with" value={to} weeks={weeks} labelOf={weekLabel} onChange={(w) => setPicked({ from, to: w })} />
           </div>
           <div style={{ margin: '16px 24px 0', borderTop: '1.5px solid var(--text)' }}>
             <div className="lg-grid">
               <span className="lg-grid__label">Set</span>
-              <span className="lg-grid__label">{from !== null ? `Week ${from}` : ''}</span>
-              <span className="lg-grid__label">{to !== null ? `Week ${to}` : ''}</span>
+              <span className="lg-grid__label">{from !== null ? weekLabel(from) : ''}</span>
+              <span className="lg-grid__label">{to !== null ? weekLabel(to) : ''}</span>
             </div>
             {Array.from({ length: count }, (_, i) => (
               <div className="lg-grid" key={i}>
@@ -282,7 +301,8 @@ export function ExerciseLogScreen() {
             {/* D-089: the shared chart; a single point sits in the middle, unstretched. */}
             <LineChart series={[{ points: series, tone: 'sage' }]} height={56} label="Top-set weight" />
             <SectionHead>History</SectionHead>
-            <LogHistory sessions={sessions} exerciseId={exerciseId} onSaved={reloadSessions} />
+            {/* LogHistory saves the sessions it gets, so it gets them as stored, never relabeled. */}
+            <LogHistory sessions={rawSessions} exerciseId={exerciseId} onSaved={reloadSessions} />
           </div>
         </>
       )}

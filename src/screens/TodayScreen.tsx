@@ -193,7 +193,7 @@ export function TodayScreen() {
   const swapped = Boolean(scheduled && day && scheduled.id !== day.id)
   const todayIso = toISODate(today)
 
-  const target = useMemo(() => (day ? { date: todayIso, dayId: day.id, programWeek: week, swapped } : null), [day, todayIso, week, swapped])
+  const target = useMemo(() => (day ? { date: todayIso, dayId: day.id, programWeek: week, swapped, programId: program?.id } : null), [day, todayIso, week, swapped, program?.id])
   const api = useSession(target)
 
   // Resume follows today's order once the user has moved something (D-063, D-065 rule 1).

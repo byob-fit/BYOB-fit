@@ -16,6 +16,8 @@ import type {
   WeekNote,
 } from '../types/stores.ts'
 import { isEmptySession, sessionIdFor } from '../lib/session.ts'
+import { uniqueProgramId } from '../lib/onboarding.ts'
+import { entryFor, historyOrActive, parseHistory, PROGRAM_HISTORY_KEY, stampFor, type ProgramEntry } from '../lib/programHistory.ts'
 import {
   ACTIVE_PROGRAM_KEY,
   GOALS_KEY,
@@ -52,6 +54,57 @@ export async function setActiveProgram(id: string): Promise<void> {
 export async function getActiveProgramId(): Promise<string | undefined> {
   const db = await getDB()
   return db.get('meta', ACTIVE_PROGRAM_KEY)
+}
+
+/** D-095: the program list, numbered in activation order (rule 6). */
+export async function getProgramHistory(): Promise<ProgramEntry[]> {
+  const db = await getDB()
+  return parseHistory(await db.get('meta', PROGRAM_HISTORY_KEY))
+}
+
+/**
+ * D-095 rules 2 and 7: store `program` without overwriting any stored program
+ * (a taken id gets a new one), make it active and add it to the program list.
+ * `baseId` is the id the program came with, before any renaming.
+ */
+export async function activateProgram(program: Program, baseId = program.id, now = new Date()): Promise<Program> {
+  await ensureProgramStamps()
+  const db = await getDB()
+  const programs = await db.getAll('programs')
+  const activeId = (await db.get('meta', ACTIVE_PROGRAM_KEY)) as string | undefined
+  const active = programs.find((p) => p.id === activeId) ?? null
+  const history = historyOrActive(parseHistory(await db.get('meta', PROGRAM_HISTORY_KEY)), active)
+  const stored: Program = { ...program, id: uniqueProgramId(program.id, programs.map((p) => p.id)) }
+  const entry = entryFor(history, active, { programId: stored.id, baseId, startDate: stored.startDate }, now)
+  const tx = db.transaction(['programs', 'meta'], 'readwrite')
+  await tx.objectStore('programs').put(stored)
+  await tx.objectStore('meta').put(stored.id, ACTIVE_PROGRAM_KEY)
+  await tx.objectStore('meta').put(JSON.stringify([...history, entry]), PROGRAM_HISTORY_KEY)
+  await tx.done
+  return stored
+}
+
+/**
+ * D-095: the one-time stamp, safe to run on every load. With an active program
+ * and no list yet, the list starts with it as program 1; every session without
+ * a program gets one (stampFor). Only adds fields; nothing moves or is deleted.
+ */
+export async function ensureProgramStamps(): Promise<void> {
+  const db = await getDB()
+  const activeId = (await db.get('meta', ACTIVE_PROGRAM_KEY)) as string | undefined
+  if (!activeId) return
+  const programs = await db.getAll('programs')
+  const active = programs.find((p) => p.id === activeId)
+  if (!active) return
+  const raw = await db.get('meta', PROGRAM_HISTORY_KEY)
+  const unstamped = (await db.getAll('sessions')).filter((s) => !s.programId)
+  if (raw !== undefined && unstamped.length === 0) return
+  const tx = db.transaction(['sessions', 'meta'], 'readwrite')
+  if (raw === undefined || parseHistory(raw).length === 0) {
+    await tx.objectStore('meta').put(JSON.stringify(historyOrActive([], active)), PROGRAM_HISTORY_KEY)
+  }
+  for (const session of unstamped) await tx.objectStore('sessions').put({ ...session, programId: stampFor(session, active, programs) })
+  await tx.done
 }
 
 export async function getActiveProgram(): Promise<Program | undefined> {
