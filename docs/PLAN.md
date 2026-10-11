@@ -305,7 +305,7 @@ D-094. Executor prompt EXEC-13.5; the code and its tests arrive as two exact pat
 
 Small change 13.5: built Oct 11, 2026 (pull request #4; `main` fast-forwarded to 486a05b). Chat checked a fresh clone of the pull request head: each commit equals its patch, 762 tests, lint, verify, audit 0, identifier list clean; the executor's WebKit and Chromium runs passed. Gate passed: the owner reported the device checks and served bytes done, Oct 11, 2026 (stated).
 
-### Small change 13.6: Progress kept across program imports (gate: on the owner's iPhone, installed app: before importing, Progress reads as before; import the new program: the old program is still stored, Progress reads "Program 2 · Week n review" for the right week, the calendar shows "Program 1" and "Program 2" headings, and old weeks keep their dots and scores; an exercise's Log still shows its history)
+### Small change 13.6: Progress kept across program imports (gate: on the owner's iPhone, installed app: before importing, Progress reads as before; import the new program: the old program is still stored, Progress reads "Week n review" for the right week with the score card naming "Program 2 · Week n", the calendar shows "Program 1" and "Program 2" headings, and old weeks keep their dots and scores; an exercise's Log still shows its history)
 D-095, D-096. Executor prompt EXEC-13.6; the code and its tests arrive as two exact patches, committed separately; pull request as a draft, merged by fast-forward. No database version change.
 ### Release to the focus group (decisions D-090, D-091; contract after the snapshot)
 The tester notice, README, the how-to guide (Phase 13G), the feedback email link, one real Android check.
@@ -328,7 +328,7 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 
 | File | Role | md5 |
 |---|---|---|
-| docs/DECISIONS.md | Decision records D-001 to D-096 | 707e99f07b23aa0ce802fc8014c82f36 |
+| docs/DECISIONS.md | Decision records D-001 to D-096 | bbdfce6be41b0d17354d7a755307896e |
 | docs/PLAN.md | This file, v1.33 | recorded in chat at delivery (a file cannot carry its own hash) |
 | docs/DESIGN-BRIEF.md | Claude Design brief v1.0, placeholder data only | f216f6b548bad5894bbdc974259a6889 |
 | docs/DESIGN-BRIEF-v2.md | Claude Design brief v2.0 | de3ff85f61214a2b812b8a5922d60967 |

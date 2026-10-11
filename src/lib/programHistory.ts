@@ -113,6 +113,8 @@ export interface WeekRef {
   until: string | null
   /** "Week 3", or "Program 2 · Week 3" once there is more than one program (rule 6). */
   label: string
+  /** For corners of cards, where the full label does not fit at phone width: "Week 3", or "P2 · Week 3". */
+  compact: string
   /** The week number alone, for the calendar's narrow column. */
   short: string
   /** Set on a program's first week when there is more than one program: "Program 2". */
@@ -142,6 +144,7 @@ export function weekRefs(segs: Segment[], today: Date): WeekRef[] {
         dates: weekDates(s.program, w),
         until: s.until,
         label: many ? `Program ${s.n} · Week ${w}` : `Week ${w}`,
+        compact: many ? `P${s.n} · Week ${w}` : `Week ${w}`,
         short: String(w),
         ...(many && w === 1 ? { heading: `Program ${s.n}` } : {}),
       })

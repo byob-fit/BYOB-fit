@@ -61,6 +61,7 @@ describe('weeks across programs (rules 3 and 6)', () => {
     expect(refs[11].label).toBe('Program 1 · Week 12')
     expect(refs[12].label).toBe('Program 2 · Week 1')
     expect(refs[14].short).toBe('3')
+    expect(refs[14].compact).toBe('P2 · Week 3')
     expect(refs.filter((r) => r.heading).map((r) => r.heading)).toEqual(['Program 1', 'Program 2'])
   })
   it('an old program replaced mid-way ends with its actual last week', () => {
@@ -73,6 +74,7 @@ describe('weeks across programs (rules 3 and 6)', () => {
     const refs = weekRefs(segments([entry('b', 1)], [b]), today)
     expect(refs.map((r) => r.label)).toEqual(['Week 1', 'Week 2', 'Week 3'])
     expect(refs.some((r) => r.heading)).toBe(false)
+    expect(refs[2].compact).toBe('Week 3')
   })
   it('an edited version keeps its number and replaces the definition', () => {
     const a2 = { ...program('a-2', '2026-07-05', 14) }

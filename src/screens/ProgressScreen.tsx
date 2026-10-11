@@ -343,7 +343,7 @@ function TrainingCharts({ program, t, data, today, changes, units }: { program: 
           ))
         )}
       </ChartCard>
-      <ChartCard title="Working sets by muscle group" aside={review.label}>
+      <ChartCard title="Working sets by muscle group" aside={review.compact}>
         {muscles.length === 0 ? (
           <p className="chart-empty">No finished workouts this week.</p>
         ) : (
@@ -716,7 +716,8 @@ export function ProgressScreen({ view }: { view: ProgressView }) {
   const { settings, loading } = useSettings()
   const data = useData()
   const t = useMemo(() => (program && data ? timelineOf(program, data, today) : null), [program, data, today])
-  const context = t ? (t.first ? 'Week 1 so far' : `${t.review.label} review`) : undefined
+  // D-096 rule 6: the header holds the week alone; the score card under it names the program.
+  const context = t ? (t.first ? 'Week 1 so far' : `Week ${t.review.week} review`) : undefined
   return (
     <div className="screen">
       <ProgressHeader view={view} context={context} />
