@@ -2,7 +2,7 @@
 
 BYOB = Build Your Own Body (STATED, Sep 12, 2026). Repo and app name: BYOB-fit.
 
-Version: 1.30 · Date: Thursday, Oct 8, 2026 (v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
+Version: 1.31 · Date: Saturday, Oct 10, 2026 (v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
 
 Provenance convention throughout: STATED (the owner) · VERIFIED (checked in chat, with source) · MODELED (Claude's estimate, method shown) · DEFAULT (Claude's proposal pending redirect).
 
@@ -293,6 +293,11 @@ Snapshot: done Oct 5 to 8, 2026. Chat cloned `byob-fit/BYOB-fit` and confirmed t
 ### Small change 13.3: timer, summary, text (gate: on the owner's iPhone, installed app: a left/right hold times left then right with the panel naming the side; tapping a running box stops it and the box can be edited; no second timer runs; tapping a right-side box does not make the page jump; the summary's Same and Down tiles list their exercises; the safety screen reads "does not give medical advice" and Meals reads "fiber")
 D-092. Executor prompt EXEC-13.3; the prototype is delivered as an exact patch, then `npm audit fix`, then tests, as separate commits; pull request as a draft, merged by rebase.
 
+Small change 13.3: built Oct 8, 2026, by commit date (pull request #2; `main` fast-forwarded to 4cf4836, no merge commit). Chat checked a fresh clone of 4cf4836 on Oct 10: 736 tests, lint, verify and audit 0, and a build serving index-D1HHG8hQ.js b8289a391761ee3273a6f72f61b27ef2 and index-DHhTAOU1.css db4e8ced158c79a8a854f2180298023f. The owner reported the device check as looking as planned on Oct 10; the right-side box (no page jump) and the served-bytes check are not yet reported item by item, so the gate stays open.
+
+### Small change 13.4: skip, remove a set, units, reload (gate: on the owner's iPhone, installed app: skip an exercise and undo it, skip it again and see "Skipped" in the Plan sheet; on an exercise with last week's values, log two of its sets, remove the rest, tap Done, and Log shows two sets; "+ Add set" brings a removed set back; the summary reads "n sets removed"; reload with the summary open lands on Today; Today counts the skipped exercise as not done)
+D-093. Executor prompt EXEC-13.4; the prototype is delivered as two exact patches, the code then its tests, as separate commits; pull request as a draft, merged by fast-forward.
+
 ### Release to the focus group (decisions D-090, D-091; contract after the snapshot)
 The tester notice, README, the how-to guide (Phase 13G), the feedback email link, one real Android check.
 
@@ -314,8 +319,8 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 
 | File | Role | md5 |
 |---|---|---|
-| docs/DECISIONS.md | Decision records D-001 to D-092 | 4c57fd8d055d9e2cb2fc5eb09ba6ba56 |
-| docs/PLAN.md | This file, v1.30 | recorded in chat at delivery (a file cannot carry its own hash) |
+| docs/DECISIONS.md | Decision records D-001 to D-093 | 58ab09ff9aa1ca27376475f85454e8dd |
+| docs/PLAN.md | This file, v1.31 | recorded in chat at delivery (a file cannot carry its own hash) |
 | docs/DESIGN-BRIEF.md | Claude Design brief v1.0, placeholder data only | f216f6b548bad5894bbdc974259a6889 |
 | docs/DESIGN-BRIEF-v2.md | Claude Design brief v2.0 | de3ff85f61214a2b812b8a5922d60967 |
 | docs/DESIGN-BRIEF-v2.1.md | Claude Design brief v2.1 | 4eed874c85c1184cba28c7ebfccf4fad |
@@ -342,12 +347,13 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 | docs/EXEC-12.md | Executor prompt, Phase 12 | 0a46847ffc01d09f42681e7bffd0ff3c |
 | docs/EXEC-11.8.md | Executor prompt, small change 11.8 | 90a40cf6c6c832beeb2e9bd7ab44da80 (redacted Oct 5, 2026, D-091) |
 | docs/EXEC-11.9.md | Executor prompt, small change 11.9 | 9c51381d240becd7f4c3318b5d05d81c |
-| docs/SCORES.md | Scores, nutrient targets and limits, body noise bands, with sources and worked examples (D-079, D-080) | 117956f58bcb34ea4b4235ffbc28519f (redacted Oct 5, 2026, D-091) |
+| docs/SCORES.md | Scores, nutrient targets and limits, body noise bands, with sources and worked examples (D-079, D-080) | 9d25568a7b08c8131685fb90ac0798d8 (amended Oct 10, 2026, D-093 rule 3) |
 | docs/EXEC-13-rework.md | Executor prompt, Phase 13 | d6d328899d5561f0f037f6e012a67532 |
 | docs/EXEC-13.1.md | Executor prompt, small change 13.1 | b71f3853d7f65818c156134ed953eff7 |
 | docs/EXEC-13.2.md | Executor prompt, small change 13.2 | 7b3bdd78ad44542b506bbab35eb99b18 |
 | docs/EXEC-14.md | Executor prompt, snapshot to the organisation (committed after the snapshot commit) | 430a5035321a44354c3558bd6f1cc532 |
-| docs/EXEC-13.3.md | Executor prompt, small change 13.3 | recorded in chat at delivery (it checks this file's hash) |
+| docs/EXEC-13.3.md | Executor prompt, small change 13.3 | 5c21beaf8df99e98260637d929aa795a (as committed on main at 04c7124) |
+| docs/EXEC-13.4.md | Executor prompt, small change 13.4 | recorded in chat at delivery (it checks this file's hash) |
 | public/icon.svg | App icon master, stacked BYOB on #1D1D1F (D-087 rule 4) | 6cfad95c9fb18f76938528984a0b2627 |
 | design/icon-maskable.svg | Maskable icon master, glyphs inside the 40% safe circle | 579142575063be489845973f6670e140 |
 | public/pwa-192.png | Icon 192 | b3f126321ff863a86256eb44be1d1418 |
