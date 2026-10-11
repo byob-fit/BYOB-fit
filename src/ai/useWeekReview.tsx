@@ -51,7 +51,7 @@ export function useWeekReview(input: {
   async function send(payload: ReturnType<typeof buildPayload>, level: PrivacyLevel) {
     cancelled.current = false
     setState({ kind: 'sending' })
-    const result = await sendAndLog({ kind: 'week_note', level, payload, system: WEEK_NOTE_SYSTEM, settings, maxTokens: 1024, timeoutMs: 60_000 })
+    const result = await sendAndLog({ kind: 'week_note', level, payload, system: WEEK_NOTE_SYSTEM, settings, maxTokens: 4096, timeoutMs: 60_000 })
     if (cancelled.current) return
     if (!result.ok) {
       setState({ kind: 'error', text: result.error })

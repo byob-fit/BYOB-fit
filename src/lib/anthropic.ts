@@ -83,6 +83,14 @@ export function readResponseText(payload: unknown): MessageResult {
     )
     .map((block) => block.text)
     .join('')
+  // A reply can stop for a reason other than finishing (D-094 rules 2 and 3). Claude 5
+  // models think by default and thinking counts toward max_tokens, so a short
+  // budget can end before any text, or part way through it.
+  const stop = (payload as { stop_reason?: unknown })?.stop_reason
+  if (stop === 'refusal') return withUsage({ ok: false, error: 'The model declined this request.' })
+  if (stop === 'max_tokens') {
+    return withUsage({ ok: false, error: 'The reply ran out of room before it finished, so it wasn’t used.' })
+  }
   if (text === '') return withUsage({ ok: false, error: 'The model returned no text.' })
   return withUsage({ ok: true, text })
 }
@@ -145,12 +153,16 @@ export async function sendMessage(
   }
 }
 
-/** Settings "Test": the smallest call that proves the key works. */
+/**
+ * Settings "Test": the smallest call that proves the key works. Any successful
+ * response proves the key and the model (D-094 rule 1): on Claude 5 models the
+ * 16-token budget is often spent thinking, so the reply may hold no text.
+ */
 export async function testKey(
   apiKey: string,
   model: string,
 ): Promise<MessageResult> {
-  return sendMessage(
+  const result = await sendMessage(
     {
       apiKey,
       model,
@@ -160,6 +172,10 @@ export async function testKey(
     },
     30_000,
   )
+  if (!result.ok && result.reached) {
+    return { ok: true, text: '', ...(result.usage ? { usage: result.usage } : {}) }
+  }
+  return result
 }
 
 /** Models often wrap JSON in a code fence; take what is inside. */

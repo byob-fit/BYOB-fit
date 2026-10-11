@@ -69,8 +69,10 @@ export function AiSettingsScreen() {
     if (!key) return
     setTesting(true)
     setStatus(null)
-    await update({ apiKey: key })
+    // D-094 rule 4: test first; a key is saved only once it passes, so a
+    // failed replacement never overwrites a working key.
     const result = await testKey(key, model)
+    if (result.ok) await update({ apiKey: key })
     setStatus(result.ok ? { ok: true, text: 'Key works · tested just now' } : { ok: false, text: result.error })
     setTesting(false)
     if (result.ok) {
@@ -133,7 +135,7 @@ export function AiSettingsScreen() {
       </ListGroup>
       {status && (
         <p className={status.ok ? 'note-v3' : 'note-v3 note-v3--danger'} role={status.ok ? 'status' : 'alert'}>
-          {status.ok ? status.text : `That key didn’t work. ${status.text}`}
+          {status.ok ? status.text : `The test didn’t pass, so nothing was saved. ${status.text}`}
         </p>
       )}
 
