@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   buildRequest,
   readErrorMessage,
   readResponseText,
   stripCodeFences,
+  testKey,
 } from './anthropic.ts'
 
 const request = {
@@ -107,5 +108,45 @@ describe('stripCodeFences', () => {
 
   it('leaves unfenced text alone', () => {
     expect(stripCodeFences('{"a":1}')).toBe('{"a":1}')
+  })
+})
+
+describe('D-094: stop reasons and the key test', () => {
+  it('reports a reply cut off by max_tokens, even with partial text', () => {
+    expect(readResponseText({ content: [{ type: 'thinking', thinking: '' }], stop_reason: 'max_tokens' })).toEqual({
+      ok: false,
+      error: 'The reply ran out of room before it finished, so it wasn’t used.',
+    })
+    expect(readResponseText({ content: [{ type: 'text', text: '{"half' }], stop_reason: 'max_tokens' }).ok).toBe(false)
+  })
+
+  it('reports a refusal', () => {
+    expect(readResponseText({ content: [], stop_reason: 'refusal' })).toEqual({ ok: false, error: 'The model declined this request.' })
+  })
+
+  it('keeps a finished reply as before', () => {
+    expect(readResponseText({ content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'ok' }], stop_reason: 'end_turn' })).toEqual({ ok: true, text: 'ok' })
+  })
+})
+
+describe('D-094: testKey', () => {
+  const reply = (status: number, body: unknown) => async () => new Response(JSON.stringify(body), { status })
+
+  it('passes when the API answers with only a thinking block (Claude 5 default)', async () => {
+    vi.stubGlobal('fetch', vi.fn(reply(200, { content: [{ type: 'thinking', thinking: '' }], stop_reason: 'max_tokens', usage: { input_tokens: 20, output_tokens: 16 } })))
+    expect(await testKey('sk-ant-test', 'claude-sonnet-5')).toEqual({ ok: true, text: '', usage: { inputTokens: 20, outputTokens: 16 } })
+    vi.unstubAllGlobals()
+  })
+
+  it('fails on a rejected key', async () => {
+    vi.stubGlobal('fetch', vi.fn(reply(401, { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } })))
+    expect(await testKey('sk-ant-bad', 'claude-sonnet-5')).toEqual({ ok: false, error: '401: invalid x-api-key' })
+    vi.unstubAllGlobals()
+  })
+
+  it('fails when the request never reaches the API', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Load failed') }))
+    expect((await testKey('sk-ant-test', 'claude-sonnet-5')).ok).toBe(false)
+    vi.unstubAllGlobals()
   })
 })
