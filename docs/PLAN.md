@@ -2,7 +2,7 @@
 
 BYOB = Build Your Own Body (STATED, Sep 12, 2026). Repo and app name: BYOB-fit.
 
-Version: 1.31 · Date: Saturday, Oct 10, 2026 (v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
+Version: 1.32 · Date: Sunday, Oct 11, 2026 (v1.31 Oct 10, v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
 
 Provenance convention throughout: STATED (the owner) · VERIFIED (checked in chat, with source) · MODELED (Claude's estimate, method shown) · DEFAULT (Claude's proposal pending redirect).
 
@@ -298,6 +298,13 @@ Small change 13.3: built Oct 8, 2026, by commit date (pull request #2; `main` fa
 ### Small change 13.4: skip, remove a set, units, reload (gate: on the owner's iPhone, installed app: skip an exercise and undo it, skip it again and see "Skipped" in the Plan sheet; on an exercise with last week's values, log two of its sets, remove the rest, tap Done, and Log shows two sets; "+ Add set" brings a removed set back; the summary reads "n sets removed"; reload with the summary open lands on Today; Today counts the skipped exercise as not done)
 D-093. Executor prompt EXEC-13.4; the prototype is delivered as two exact patches, the code then its tests, as separate commits; pull request as a draft, merged by fast-forward.
 
+Small change 13.4: built Oct 10, 2026 (pull request #3; `main` fast-forwarded to 0d7b381, no merge commit). Chat checked a fresh clone of the pull request head: each commit equals its patch, 756 tests, lint, verify, audit 0, identifier list clean; the executor's WebKit and Chromium runs passed. Served bytes reported as matching by the owner, Oct 11. Device gate not yet reported.
+
+### Small change 13.5: key test and model replies (gate: on the owner's iPhone, installed app: Settings → AI, Replace with a wrong key: the rule 4 text shows and the saved key's last four characters are unchanged; Replace with the working key: "Key works · tested just now"; one real review or week note completes)
+D-094. Executor prompt EXEC-13.5; the code and its tests arrive as two exact patches, committed separately; pull request as a draft, merged by fast-forward.
+
+### Small change 13.6: Progress kept across program imports (gate: set when the design is built and checked in chat)
+D-095. Built after 13.5. No database version change.
 ### Release to the focus group (decisions D-090, D-091; contract after the snapshot)
 The tester notice, README, the how-to guide (Phase 13G), the feedback email link, one real Android check.
 
@@ -319,8 +326,8 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 
 | File | Role | md5 |
 |---|---|---|
-| docs/DECISIONS.md | Decision records D-001 to D-093 | 58ab09ff9aa1ca27376475f85454e8dd |
-| docs/PLAN.md | This file, v1.31 | recorded in chat at delivery (a file cannot carry its own hash) |
+| docs/DECISIONS.md | Decision records D-001 to D-095 | c317c0a07d39bdc378dd1fd551c64452 |
+| docs/PLAN.md | This file, v1.32 | recorded in chat at delivery (a file cannot carry its own hash) |
 | docs/DESIGN-BRIEF.md | Claude Design brief v1.0, placeholder data only | f216f6b548bad5894bbdc974259a6889 |
 | docs/DESIGN-BRIEF-v2.md | Claude Design brief v2.0 | de3ff85f61214a2b812b8a5922d60967 |
 | docs/DESIGN-BRIEF-v2.1.md | Claude Design brief v2.1 | 4eed874c85c1184cba28c7ebfccf4fad |
@@ -353,7 +360,8 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 | docs/EXEC-13.2.md | Executor prompt, small change 13.2 | 7b3bdd78ad44542b506bbab35eb99b18 |
 | docs/EXEC-14.md | Executor prompt, snapshot to the organisation (committed after the snapshot commit) | 430a5035321a44354c3558bd6f1cc532 |
 | docs/EXEC-13.3.md | Executor prompt, small change 13.3 | 5c21beaf8df99e98260637d929aa795a (as committed on main at 04c7124) |
-| docs/EXEC-13.4.md | Executor prompt, small change 13.4 | recorded in chat at delivery (it checks this file's hash) |
+| docs/EXEC-13.4.md | Executor prompt, small change 13.4 | 0bf6ec2803fbb0fb73528bdfded4f84b (as committed on main at 156e31a) |
+| docs/EXEC-13.5.md | Executor prompt, small change 13.5 | recorded in chat at delivery (it checks this file's hash) |
 | public/icon.svg | App icon master, stacked BYOB on #1D1D1F (D-087 rule 4) | 6cfad95c9fb18f76938528984a0b2627 |
 | design/icon-maskable.svg | Maskable icon master, glyphs inside the 40% safe circle | 579142575063be489845973f6670e140 |
 | public/pwa-192.png | Icon 192 | b3f126321ff863a86256eb44be1d1418 |
@@ -382,7 +390,7 @@ Served-bytes vs fresh local build for anything deployed. Visual acceptance on th
 
 ## 10. Backlog (parked, named, not blocking)
 
-B-1 In-app microphone (D-019) · B-2 Relay server and accounts (D-020) · B-3 Closed: demos are in scope (D-033), source in O-6 · B-4 Charts beyond simple trends · B-5 Sharing a week summary as an image · B-6 Multiple programs per user (one active program; past programs kept for history is a later decision) · B-7 Health-app and wearable sync (would likely bring the FTC Health Breach Notification Rule into play; see O-7) · B-8 Local progression engine beyond the chip in frame 3b · B-10 Convert an existing program between kg and lb as an explicit action (D-040) · B-11 App icon in the 1b direction (D-050) · B-9 Home-equipment versions of the starter programs (stated by the owner Sep 28, 2026: after the complete build) · B-12 In-app number pad for set entry: would remove the iOS keyboard from logging (and with it the contact AutoFill and keyboard scroll problems) but ends keyboard dictation for sets and supersedes D-051's native keypads; D-054 rule 1 did not stop the contact suggestion (D-064); the bar is accepted as cosmetic and this stays parked · B-13 Opening today and past days from Week to review logged sets or "Missed" (proposed in the Sep 29 bug handoff; Log already shows past sessions)
+B-1 In-app microphone (D-019) · B-2 Relay server and accounts (D-020) · B-3 Closed: demos are in scope (D-033), source in O-6 · B-4 Charts beyond simple trends · B-5 Sharing a week summary as an image · B-6 Multiple programs per user (one active program; keeping past programs for history pulled forward as D-095, small change 13.6) · B-7 Health-app and wearable sync (would likely bring the FTC Health Breach Notification Rule into play; see O-7) · B-8 Local progression engine beyond the chip in frame 3b · B-10 Convert an existing program between kg and lb as an explicit action (D-040) · B-11 App icon in the 1b direction (D-050) · B-9 Home-equipment versions of the starter programs (stated by the owner Sep 28, 2026: after the complete build) · B-12 In-app number pad for set entry: would remove the iOS keyboard from logging (and with it the contact AutoFill and keyboard scroll problems) but ends keyboard dictation for sets and supersedes D-051's native keypads; D-054 rule 1 did not stop the contact suggestion (D-064); the bar is accepted as cosmetic and this stays parked · B-13 Opening today and past days from Week to review logged sets or "Missed" (proposed in the Sep 29 bug handoff; Log already shows past sessions)
 
 ## 11. Open items
 
