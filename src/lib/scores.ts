@@ -7,7 +7,7 @@ import type { BodyEntry, DayChange, Goals, GoalType, MealDay, Session } from '..
 import { BODY_FIELDS, convert, type BodyField } from './body.ts'
 import { toISODate } from './dates.ts'
 import { energyBand } from './nutrients.ts'
-import { buildDeck, findEntry, findReferenceEntry, isEmptySession, isSetConfirmed, setRowsFor } from './session.ts'
+import { buildDeck, findEntry, findReferenceEntry, isChoiceSkip, isEmptySession, isSetConfirmed, setRowsFor } from './session.ts'
 import { addedDeckItems, effectiveDeckItem } from './sessionExercises.ts'
 import { compareTopSets, topSet, type Change } from './summary.ts'
 import { dayForDate, weekDates } from './program.ts'
@@ -142,6 +142,7 @@ export function trainingCounts(input: {
   }
 
   // Completeness over the per-set items of finished sessions; Discomfort skips left out.
+  // D-093 rule 3: a skip by choice and a removed set count as planned and not done.
   const latest = new Map<string, { session: Session; type: NonNullable<ItemFields['type']>; dayId: string }>()
   for (const { session, day } of finishedSessions) {
     const date = new Date(`${session.date}T12:00:00`)
@@ -151,7 +152,8 @@ export function trainingCounts(input: {
     for (const d of deck) {
       if (!isPerSetItem(d.section.kind, d.resolved)) continue
       const entry = findEntry(session, d.item.id)
-      if (entry?.skipped || entry?.feltOff === 'discomfort') continue
+      if (entry?.skipped && !isChoiceSkip(entry)) continue
+      if (entry?.feltOff === 'discomfort') continue
       const rows = setRowsFor(d.resolved)
       counts.prescribed += rows.length
       const confirmed = (entry?.sets ?? []).filter(isSetConfirmed).length

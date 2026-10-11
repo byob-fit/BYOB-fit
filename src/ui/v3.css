@@ -2774,13 +2774,9 @@ select {
   font-weight: 400;
 }
 
-.dk-addset--remove {
-  min-height: 44px;
-  padding: 0 18px;
-  border: none;
+/* D-093 rule 2: Remove set sits beside Add set, in the danger colour. */
+.dk-removeset {
   color: var(--danger);
-  font-weight: 700;
-  font-size: 14px;
 }
 
 .dk-tools {

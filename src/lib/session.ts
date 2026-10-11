@@ -98,6 +98,11 @@ export function setRowsFor(resolved: ItemFields): SetRow[] {
   return rows
 }
 
+/** D-093 rule 1: skipped by the user's choice, not through Discomfort (D-048). */
+export function isChoiceSkip(entry: { skipped?: boolean; feltOff?: string } | undefined): boolean {
+  return entry?.skipped === true && entry.feltOff !== 'discomfort'
+}
+
 export function sameRow(set: SetLog, row: SetRow): boolean {
   return set.n === row.n && (set.side ?? undefined) === (row.side ?? undefined)
 }
@@ -233,6 +238,10 @@ export interface SessionSummary {
   setsConfirmed: number
   durationMin: number | null
   skipped: number
+  /** Prescribed sets removed today (D-093 rule 4). */
+  removed: number
+  /** Exercises skipped by choice, which count as not done (D-093 rule 3). */
+  skippedByChoice: number
   swapped: boolean
 }
 
@@ -242,6 +251,8 @@ export function summarise(
 ): SessionSummary {
   let setsConfirmed = 0
   let skipped = 0
+  let removed = 0
+  let skippedByChoice = 0
 
   for (const deckItem of deck) {
     const entry = findEntry(session, deckItem.item.id)
@@ -250,6 +261,8 @@ export function summarise(
       setsConfirmed += confirmed.length
       // D-048: Discomfort marks the entry skipped even with some sets done.
       if (confirmed.length === 0 || entry?.skipped) skipped += 1
+      if (isChoiceSkip(entry)) skippedByChoice += 1
+      removed += entry?.removedSets ?? 0
     } else if (entry?.checked !== true) {
       skipped += 1
     }
@@ -271,6 +284,8 @@ export function summarise(
     setsConfirmed,
     durationMin,
     skipped,
+    removed,
+    skippedByChoice,
     swapped: session?.swapped === true,
   }
 }

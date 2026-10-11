@@ -5612,14 +5612,6 @@ input[type='file'] {
   color: var(--accent);
 }
 
-.dk-addset--remove {
-  display: block;
-  margin: 0 0 4px 28px;
-  min-height: 36px;
-  font-size: 14px;
-  color: var(--danger);
-}
-
 .dk-keep {
   margin: 16px 24px 0;
 }

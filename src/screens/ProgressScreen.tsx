@@ -160,7 +160,7 @@ function HowItWorks({ title, rows, onClose }: { title: string; rows: { weight?: 
 
 const TRAINING_HOW = [
   { weight: '40%', head: 'Workouts done.', text: 'Workouts you finished, out of those planned. A workout counts once it has at least one logged set.' },
-  { weight: '30%', head: 'Sets done.', text: "Working sets you logged, out of those planned. Extra sets don’t push it past 100%, and anything skipped through Felt off isn’t held against you." },
+  { weight: '30%', head: 'Sets done.', text: "Working sets you logged, out of those planned. Extra sets don’t push it past 100%. Exercises you skip and sets you remove count as not done; anything skipped through Felt off isn’t held against you." },
   {
     weight: '30%',
     head: 'Progress.',
@@ -205,7 +205,7 @@ function trainingWords(c: TrainingCounts) {
   }
 }
 
-function TrainingView({ program, data, today, current, changes }: { program: Program; data: Data; today: Date; current: number; changes: DayChange[] }) {
+function TrainingView({ program, data, today, current, changes, units }: { program: Program; data: Data; today: Date; current: number; changes: DayChange[]; units: string }) {
   const navigate = useNavigate()
   const [how, setHow] = useState(false)
   const review = Math.max(1, current - 1)
@@ -251,7 +251,7 @@ function TrainingView({ program, data, today, current, changes }: { program: Pro
           <PartBar text={w.completeness} value={c.prescribed ? c.confirmed / c.prescribed : null} />
         </FirstWeek>
         <p className="note-v3">Progress needs last week to compare with. It starts in week 2.</p>
-        <TrainingCharts program={program} data={data} today={today} review={1} current={current} changes={changes} />
+        <TrainingCharts program={program} data={data} today={today} review={1} current={current} changes={changes} units={units} />
         <LogScreen embedded />
       </>
     )
@@ -273,21 +273,21 @@ function TrainingView({ program, data, today, current, changes }: { program: Pro
         </button>
       </section>
       {ai.button}
-      <TrainingCharts program={program} data={data} today={today} review={review} current={current} changes={changes} />
+      <TrainingCharts program={program} data={data} today={today} review={review} current={current} changes={changes} units={units} />
       <LogScreen embedded />
       {how && <HowItWorks title="How the training score works" rows={TRAINING_HOW} onClose={() => setHow(false)} />}
     </>
   )
 }
 
-function TrainingCharts({ program, data, today, review, current, changes }: { program: Program; data: Data; today: Date; review: number; current: number; changes: DayChange[] }) {
+function TrainingCharts({ program, data, today, review, current, changes, units }: { program: Program; data: Data; today: Date; review: number; current: number; changes: DayChange[]; units: string }) {
   // Estimated one-rep max per lift: the index lifts, or the three most logged load lifts.
   const index = [...indexExerciseIds(program, current)]
   const logged = new Map<string, number>()
   for (const s of data.sessions) for (const e of s.entries) if (e.sets.some((x) => x.weight !== undefined)) logged.set(e.exerciseId, (logged.get(e.exerciseId) ?? 0) + 1)
   const lifts = (index.length ? index : [...logged.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)).slice(0, 4)
   const series = lifts.map((id) => ({ id, name: program.exercises[id]?.name ?? id, points: oneRepMaxSeries(data.sessions, id) })).filter((s) => s.points.length > 0)
-  const unit = program.days.flatMap((d) => d.sections.flatMap((s) => s.items)).find((i) => i.unit)?.unit ?? 'kg'
+  const unit = program.days.flatMap((d) => d.sections.flatMap((s) => s.items)).find((i) => i.unit)?.unit ?? units
 
   const weekIso = weekDates(program, review).map(toISODate)
   const weekSessions = data.sessions.filter((s) => weekIso.includes(s.date) && isFinishedSession(s))
@@ -690,7 +690,7 @@ export function ProgressScreen({ view }: { view: ProgressView }) {
         <>
           {view === 'training' &&
             (program ? (
-              <TrainingView program={program} data={data} today={today} current={current} changes={changes} />
+              <TrainingView program={program} data={data} today={today} current={current} changes={changes} units={unitsOf(settings)} />
             ) : (
               <EmptyState title="No program yet" body="Your training score appears once you have a program and a full week behind you." />
             ))}

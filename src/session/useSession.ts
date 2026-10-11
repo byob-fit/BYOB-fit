@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { deleteSession, getSessionByDateAndDay, saveSession } from '../db/index.ts'
-import { endOutcome, finishOutcome, sessionIdFor, type EndOutcome } from '../lib/session.ts'
+import { endOutcome, finishOutcome, isChoiceSkip, sessionIdFor, type EndOutcome } from '../lib/session.ts'
+import { changedSetCounts } from '../lib/todayPlan.ts'
 import { clearDeckState } from './deckState.ts'
 import type { ItemFields } from '../types/program.ts'
 import type { Entry, FeltOff, Session, SetLog } from '../types/stores.ts'
@@ -43,8 +44,10 @@ export interface SessionApi {
   reload: () => Promise<void>
   /** D-065 rule 1: today's order, stored when the user moves an item. */
   setOrder: (order: { itemId: string; sectionId: string }[]) => Promise<void>
-  /** D-065 rule 5: add (+1) or remove (-1) an added set; creates the entry if needed. */
-  changeAddedSets: (itemId: string, exerciseId: string, delta: 1 | -1) => Promise<void>
+  /** D-065 rule 5, D-093 rule 2: add (+1) or remove (-1) a set today; `base` is the prescribed sets. */
+  changeSets: (itemId: string, exerciseId: string, base: number, delta: 1 | -1) => Promise<void>
+  /** D-093 rule 1: skip today by choice, or undo that skip. */
+  setSkipped: (itemId: string, exerciseId: string, skipped: boolean) => Promise<void>
   /** D-069 rule 7: an exercise added today, with today's order, in one write. */
   addEntry: (entry: Entry, order: { itemId: string; sectionId: string }[]) => Promise<void>
   /** D-069 rule 8: a swap logged with its own prescription. */
@@ -215,10 +218,12 @@ export function useSession(target: SessionTarget | null): SessionApi {
       await commit(
         withEntry(current, itemId, exerciseId, (entry) => {
           const next: Entry = { ...entry }
+          // D-093 rule 5: a skip by choice stays when the flag changes.
+          const choice = isChoiceSkip(entry)
           delete next.feltOff
           delete next.skipped
           if (flag) next.feltOff = flag
-          if (flag === 'discomfort') next.skipped = true
+          if (flag === 'discomfort' || choice) next.skipped = true
           return next
         }),
       )
@@ -234,15 +239,29 @@ export function useSession(target: SessionTarget | null): SessionApi {
     [ensure, commit],
   )
 
-  const changeAddedSets = useCallback(
-    async (itemId: string, exerciseId: string, delta: 1 | -1) => {
+  const changeSets = useCallback(
+    async (itemId: string, exerciseId: string, base: number, delta: 1 | -1) => {
       const current = await ensure()
       await commit(
         withEntry(current, itemId, exerciseId, (entry) => {
           const next: Entry = { ...entry }
-          const count = Math.max(0, (entry.addedSets ?? 0) + delta)
-          if (count > 0) next.addedSets = count
-          else delete next.addedSets
+          delete next.addedSets
+          delete next.removedSets
+          return { ...next, ...changedSetCounts(base, entry, delta) }
+        }),
+      )
+    },
+    [ensure, commit],
+  )
+
+  const setSkipped = useCallback(
+    async (itemId: string, exerciseId: string, skipped: boolean) => {
+      const current = await ensure()
+      await commit(
+        withEntry(current, itemId, exerciseId, (entry) => {
+          const next: Entry = { ...entry }
+          if (skipped) next.skipped = true
+          else if (isChoiceSkip(entry)) delete next.skipped
           return next
         }),
       )
@@ -311,7 +330,8 @@ export function useSession(target: SessionTarget | null): SessionApi {
     end,
     reload,
     setOrder,
-    changeAddedSets,
+    changeSets,
+    setSkipped,
     addEntry,
     changeExercise,
   }

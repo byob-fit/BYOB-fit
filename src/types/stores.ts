@@ -26,10 +26,12 @@ export interface Entry {
   note?: string
   /** D-048: how the exercise felt. Discomfort also marks the entry skipped. */
   feltOff?: FeltOff
-  /** The rest of the exercise was skipped today (set with Discomfort). */
+  /** Skipped today: with Discomfort (D-048), or by choice before any set was saved (D-093 rule 1). */
   skipped?: boolean
   /** Sets added today beyond the prescription (D-055, D-065 rule 5). */
   addedSets?: number
+  /** Prescribed sets removed today, from the last one back (D-093 rule 2); never with addedSets. */
+  removedSets?: number
   /** The prescription logged today when it differs from the program item (D-069 rule 9). */
   fields?: ItemFields
   /** An exercise added today from the plan; its itemId is new, not a program item (D-069 rule 7). */

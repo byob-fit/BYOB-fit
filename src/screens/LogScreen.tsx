@@ -28,6 +28,8 @@ import { ChevronRightIcon, SearchIcon } from '../ui/icons.tsx'
 import { StateBlock } from '../ui/StateBlock.tsx'
 import { LogHistory } from './LogHistory.tsx'
 import { indexExerciseIds } from '../lib/charts.ts'
+import { unitsOf } from '../settings/defaults.ts'
+import { useSettings } from '../settings/useSettings.ts'
 
 
 
@@ -175,8 +177,8 @@ export function LogScreen({ embedded = false }: { embedded?: boolean } = {}) {
   )
 }
 
-/** The unit this exercise's items use in the program, kg when none says. */
-function unitFor(program: Program, exerciseId: string): string {
+/** The unit this exercise's items use in the program; the Settings unit when none says (D-093 rule 6). */
+function unitFor(program: Program, exerciseId: string, fallback: string): string {
   for (const day of program.days) {
     for (const section of day.sections) {
       for (const item of section.items) {
@@ -184,7 +186,7 @@ function unitFor(program: Program, exerciseId: string): string {
       }
     }
   }
-  return 'kg'
+  return fallback
 }
 
 function WeekPicker({ label, value, weeks, onChange }: { label: string; value: number | null; weeks: number[]; onChange: (week: number) => void }) {
@@ -207,6 +209,7 @@ function WeekPicker({ label, value, weeks, onChange }: { label: string; value: n
 
 export function ExerciseLogScreen() {
   const { program } = useProgram()
+  const { settings } = useSettings()
   const { exerciseId = '' } = useParams()
   const navigate = useNavigate()
   const [sessions, reloadSessions] = useSessionsWithReload()
@@ -223,7 +226,7 @@ export function ExerciseLogScreen() {
   const toSets = to !== null ? setsInWeek(sessions, exerciseId, to) : []
   const fromBest = bestSetOf(fromSets)
   const toBest = bestSetOf(toSets)
-  const change = bestSetChange(fromBest, toBest, program ? unitFor(program, exerciseId) : 'kg')
+  const change = bestSetChange(fromBest, toBest, program ? unitFor(program, exerciseId, unitsOf(settings)) : unitsOf(settings))
   const count = Math.max(fromSets.length, toSets.length)
 
   return (

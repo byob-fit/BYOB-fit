@@ -1,7 +1,7 @@
 // The session summary's comparison with last week and its progression list
 // (D-074 rule 4). Pure functions: no storage, no DOM.
 
-import type { Exercise, ItemType } from '../types/program.ts'
+import type { Exercise, ItemType, LoadUnit } from '../types/program.ts'
 import type { Entry, Session, SetLog } from '../types/stores.ts'
 import { suggestProgression, suggestionText } from './progression.ts'
 import { findEntry, findReferenceEntry, isSetConfirmed, type DeckItem } from './session.ts'
@@ -89,7 +89,7 @@ export function setText(set: SetLog, type: ItemType, unit: string): string {
  * top set in the reference entry (D-074 rule 5). `history` is every stored
  * session; this session is left out of it.
  */
-export function compareWithLastWeek(session: Session | undefined, deck: DeckItem[], history: Session[], dayId: string): LastWeekComparison {
+export function compareWithLastWeek(session: Session | undefined, deck: DeckItem[], history: Session[], dayId: string, fallbackUnit: LoadUnit = 'kg'): LastWeekComparison {
   const result: LastWeekComparison = { up: 0, same: 0, down: 0, upLines: [], lines: [], newIds: [] }
   const before = history.filter((s) => s.id !== session?.id)
   for (const deckItem of deck) {
@@ -108,7 +108,8 @@ export function compareWithLastWeek(session: Session | undefined, deck: DeckItem
     }
     const change = compareTopSets(today, last, type)
     result[change] += 1
-    const unit = deckItem.resolved.unit ?? 'kg'
+    // D-093 rule 6: an item with no unit uses the Settings unit the caller passes.
+    const unit = deckItem.resolved.unit ?? fallbackUnit
     const line = { exerciseId: entry.exerciseId, today: setText(today, type, unit), last: setText(last, type, unit) }
     result.lines.push({ ...line, change })
     if (change === 'up') result.upLines.push(line)
@@ -126,6 +127,7 @@ export function readyToProgress(
   deck: DeckItem[],
   history: Session[],
   exerciseOf: (exerciseId: string) => Exercise | undefined,
+  fallbackUnit: LoadUnit = 'kg',
 ): { exerciseId: string; text: string }[] {
   if (!session) return []
   const before = history.filter((s) => s.id !== session.id)
@@ -139,7 +141,7 @@ export function readyToProgress(
       { ...deckItem.resolved, progression: deckItem.item.progression },
       exerciseOf(entry.exerciseId),
       [entry, ...past],
-      deckItem.resolved.unit ?? 'kg',
+      deckItem.resolved.unit ?? fallbackUnit,
     )
     if (suggestion) out.push({ exerciseId: entry.exerciseId, text: suggestionText(suggestion) })
   }

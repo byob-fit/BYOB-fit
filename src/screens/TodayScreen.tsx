@@ -16,6 +16,7 @@ import {
   buildDeck,
   findEntry,
   findReferenceEntry,
+  isChoiceSkip,
   isSetConfirmed,
   restDayState,
   sessionIdFor,
@@ -24,10 +25,11 @@ import {
   type DeckItem,
 } from '../lib/session.ts'
 import { compareWithLastWeek, readyToProgress } from '../lib/summary.ts'
-import { applyOrder, isDeckItemDone } from '../lib/todayPlan.ts'
+import { applyOrder, isDeckItemDone, setRowsWithAdded } from '../lib/todayPlan.ts'
 import { useProgram } from '../program/useProgram.ts'
 import { clearDeckState, onDeckStateChange, readDeckState, type DeckState } from '../session/deckState.ts'
 import { useSession } from '../session/useSession.ts'
+import { unitsOf } from '../settings/defaults.ts'
 import { useSettings } from '../settings/useSettings.ts'
 import type { Program, Section } from '../types/program.ts'
 import type { Entry, Session } from '../types/stores.ts'
@@ -86,7 +88,10 @@ function SectionList({
   dayId,
   nowId,
   onToggle,
+  units,
 }: {
+  /** D-093 rule 6: the Settings unit, for items with none of their own. */
+  units: string
   section: Section
   program: Program
   week: number
@@ -111,10 +116,11 @@ function SectionList({
         const name = program.exercises[exerciseId]?.name ?? exerciseId
         const logged = isLogged(section.kind, resolved)
         // Done as Resume and the plan sheet read it (isDeckItemDone): a logged set, a skip, or a check.
-        const done = entry?.skipped === true || (logged ? (entry?.sets ?? []).some(isSetConfirmed) : entry?.checked === true)
+        // D-093 rule 3: a skip by choice is not shown as done.
+        const done = (entry?.skipped === true && !isChoiceSkip(entry)) || (logged ? (entry?.sets ?? []).some(isSetConfirmed) : entry?.checked === true)
         const state: RowState = item.id === nowId ? 'now' : done ? 'done' : 'todo'
         const checkable = onToggle && !logged
-        const last = !session?.startedAt && (section.kind === 'main' || section.kind === 'block') && (resolved.type ?? 'load_reps') === 'load_reps' ? lastWeekText(findReferenceEntry(history, dayId, exerciseId, 'load_reps'), resolved.unit ?? 'kg') : null
+        const last = !session?.startedAt && (section.kind === 'main' || section.kind === 'block') && (resolved.type ?? 'load_reps') === 'load_reps' ? lastWeekText(findReferenceEntry(history, dayId, exerciseId, 'load_reps'), resolved.unit ?? units) : null
         const body = (
           <>
             <Marker state={state} />
@@ -175,6 +181,7 @@ function count(n: number, one: string, many = `${one}s`) {
 
 export function TodayScreen() {
   const { program, today, week, changes, setChange } = useProgram()
+  const { settings } = useSettings()
   const navigate = useNavigate()
   const [history, setHistory] = useState<Session[]>([])
   const [kept, setKept] = useState<DeckState | null>(null)
@@ -260,7 +267,7 @@ export function TodayScreen() {
   )
   const lists = (nowId?: string, onToggle?: (itemId: string, exerciseId: string, next: boolean) => void) =>
     day.sections.map((section) => (
-      <SectionList key={section.id} section={section} program={program} week={week} date={today} session={session} history={others} dayId={day.id} nowId={nowId} onToggle={onToggle} />
+      <SectionList key={section.id} section={section} program={program} week={week} date={today} session={session} history={others} dayId={day.id} nowId={nowId} onToggle={onToggle} units={unitsOf(settings)} />
     ))
 
   if (day.rest) {
@@ -307,13 +314,16 @@ export function TodayScreen() {
   // Resume points at the first item with nothing recorded against it.
   const nextUp: DeckItem | undefined = deck.find((deckItem) => {
     const entry = findEntry(session, deckItem.item.id)
+    // D-093 rule 1: a skipped exercise is never next.
+    if (entry?.skipped) return false
     if (deckItem.logged) return !(entry?.sets ?? []).some(isSetConfirmed)
     return entry?.checked !== true
   })
   const started = session !== undefined && session.entries.length > 0
   const finished = Boolean(session?.endedAt)
   const summary = summarise(session, deck)
-  const doneCount = deck.filter((d) => isDeckItemDone(d, session)).length
+  // D-093 rule 3: an exercise skipped by choice is not counted as done.
+  const doneCount = deck.filter((d) => isDeckItemDone(d, session) && !isChoiceSkip(findEntry(session, d.item.id))).length
   const totalSets = deck.filter((d) => d.logged && d.resolved.type !== 'check').reduce((n, d) => n + setRowsFor(d.resolved).length, 0)
   const warmup = deck.find((d) => d.section.kind === 'warmup' && d.resolved.minutes)
   const name = day.focus ?? day.name
@@ -325,8 +335,8 @@ export function TodayScreen() {
 
   let card
   if (finished) {
-    const compared = compareWithLastWeek(session, deck, others, day.id)
-    const ready = readyToProgress(session, deck, others, (id) => program?.exercises[id])
+    const compared = compareWithLastWeek(session, deck, others, day.id, unitsOf(settings))
+    const ready = readyToProgress(session, deck, others, (id) => program?.exercises[id], unitsOf(settings))
     const words = [
       compared.up > 0 ? `${compared.up === 1 ? 'One lift' : `${count(compared.up, 'lift')}`} went up on last week.` : null,
       ready.length > 0 ? `${program.exercises[ready[0].exerciseId]?.name ?? ready[0].exerciseId} is ready to progress.` : null,
@@ -355,7 +365,7 @@ export function TodayScreen() {
     const entry = findEntry(session, nextUp.item.id)
     const nextName = program.exercises[entry?.exerciseId ?? nextUp.resolved.exerciseId ?? '']?.name ?? nextUp.resolved.exerciseId
     const setN = (entry?.sets ?? []).filter(isSetConfirmed).length + 1
-    const setTotal = setRowsFor(nextUp.resolved).length
+    const setTotal = setRowsWithAdded(nextUp.resolved, entry?.addedSets, entry?.removedSets).length
     card = (
       <section className="card-v3 today-card">
         <div className="today-card__row">

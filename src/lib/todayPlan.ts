@@ -77,7 +77,7 @@ export function restAfterDone(restUntil: number | null, newSets: number, restSec
 export function isDeckItemInProgress(deckItem: DeckItem, session: Session | undefined): boolean {
   const entry = findEntry(session, deckItem.item.id)
   if (!deckItem.logged || entry?.skipped) return false
-  const rows = setRowsWithAdded(deckItem.resolved, entry?.addedSets)
+  const rows = setRowsWithAdded(deckItem.resolved, entry?.addedSets, entry?.removedSets)
   const saved = rows.filter((row) => isSetConfirmed(findSet(entry, row))).length
   return saved > 0 && saved < rows.length
 }
@@ -137,16 +137,38 @@ export function currentAfterMove(before: OrderEntry[], after: OrderEntry[], curr
 
 // ── d. Added sets ──
 
-/** setRowsFor plus `addedSets` more set numbers; L and R rows on per-side items (D-065 rule 5). */
-export function setRowsWithAdded(resolved: Parameters<typeof setRowsFor>[0], addedSets: number | undefined): SetRow[] {
-  const rows = setRowsFor(resolved)
+/**
+ * setRowsFor plus `addedSets` more set numbers; L and R rows on per-side items
+ * (D-065 rule 5). `removedSets` drops prescribed sets from the last one back
+ * (D-093 rule 2); at least one set always stays.
+ */
+export function setRowsWithAdded(resolved: Parameters<typeof setRowsFor>[0], addedSets: number | undefined, removedSets?: number): SetRow[] {
   const base = Math.max(1, resolved.sets ?? 1)
+  const keep = Math.max(1, base - (removedSets ?? 0))
+  const rows = setRowsFor(resolved).filter((row) => row.n <= keep)
   for (let k = 1; k <= (addedSets ?? 0); k++) {
     const n = base + k
     if (resolved.perSide) rows.push({ n, side: 'L' }, { n, side: 'R' })
     else rows.push({ n })
   }
   return rows
+}
+
+/**
+ * Add set (+1) and Remove set (-1) on today's entry (D-065 rule 5, D-093 rule 2).
+ * Adding first brings back a removed set; removing first drops an added set,
+ * then prescribed sets from the last one back, never the last one left.
+ */
+export function changedSetCounts(base: number, entry: { addedSets?: number; removedSets?: number } | undefined, delta: 1 | -1): { addedSets?: number; removedSets?: number } {
+  const sets = Math.max(1, base)
+  let added = entry?.addedSets ?? 0
+  let removed = Math.min(entry?.removedSets ?? 0, sets - 1)
+  if (delta === 1) {
+    if (removed > 0) removed -= 1
+    else added += 1
+  } else if (added > 0) added -= 1
+  else if (sets - removed > 1) removed += 1
+  return { ...(added > 0 ? { addedSets: added } : {}), ...(removed > 0 ? { removedSets: removed } : {}) }
 }
 
 /** Distinct set numbers with a saved value today: what "Keep N sets" keeps. */

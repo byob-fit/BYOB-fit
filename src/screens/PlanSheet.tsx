@@ -17,6 +17,7 @@ export function PlanSheet({
   currentIndex,
   done,
   inProgress,
+  skipped = new Set<string>(),
   nameOf,
   sections,
   onJump,
@@ -35,6 +36,8 @@ export function PlanSheet({
   done: ReadonlySet<string>
   /** Done items with only some sets saved show as in progress (D-074 rule 1). */
   inProgress: ReadonlySet<string>
+  /** D-093 rule 4: items skipped today say so. */
+  skipped?: ReadonlySet<string>
   nameOf: (deckItem: DeckItem) => string
   onJump: (index: number) => void
   onMove: (itemId: string, toIndex: number, toSectionId: string) => void
@@ -133,10 +136,10 @@ export function PlanSheet({
                     data-section-id={deckItem.section.id}
                     style={dragging ? { transform: `translateY(${drag.dy}px)` } : undefined}
                   >
-                    <Marker state={state === 'Done' ? 'done' : current ? 'now' : 'todo'} />
+                    <Marker state={state === 'Done' && !skipped.has(id) ? 'done' : current ? 'now' : 'todo'} />
                     <button type="button" className="plan-sheet__name" onClick={() => onJump(index)}>
                       <span className={current ? 'plan-sheet__title plan-sheet__title--now' : 'plan-sheet__title'}>{name}</span>
-                      <span className="plan-sheet__value">{current ? 'Now' : partly ? 'In progress' : prescriptionText(deckItem.resolved)}</span>
+                      <span className="plan-sheet__value">{current ? 'Now' : skipped.has(id) ? 'Skipped' : partly ? 'In progress' : prescriptionText(deckItem.resolved)}</span>
                     </button>
                     {!isDone && (
                       <span className="plan-sheet__moves">

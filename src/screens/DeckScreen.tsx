@@ -38,6 +38,7 @@ import {
   sessionIdFor,
   findReferenceEntry,
   findSet,
+  isChoiceSkip,
   isSetConfirmed,
   isSetFlagged,
   nearestWeightAbove,
@@ -74,6 +75,7 @@ import { clearDeckState, readDeckState, writeDeckState } from '../session/deckSt
 import { needsCentring } from '../lib/deckScroll.ts'
 import { aOrAn } from '../lib/article.ts'
 import { useSession } from '../session/useSession.ts'
+import { unitsOf } from '../settings/defaults.ts'
 import { useSettings } from '../settings/useSettings.ts'
 import type { Exercise, ItemFields } from '../types/program.ts'
 import type { Entry, FeltOff, Session, SetLog } from '../types/stores.ts'
@@ -380,14 +382,15 @@ function Deck() {
     () => (day ? findReferenceEntry(history, day.id, exerciseId, current?.resolved.type) : undefined),
     [history, day, exerciseId, current?.resolved.type],
   )
-  const unit = current?.resolved.unit ?? 'kg'
+  // D-093 rule 6: an item with no unit of its own shows the unit chosen in Settings.
+  const unit = current?.resolved.unit ?? unitsOf(settings)
 
   // D-077 rules 3 and 4: keep what leaving would lose, and what the in-progress bar shows.
   const open = Boolean(api.session && !api.session.endedAt)
   const barLabel = useMemo(() => {
     if (!exercise?.name) return undefined
     const next = current?.logged
-      ? setRowsWithAdded(current.resolved, entry?.addedSets).find((row) => !isSetConfirmed(findSet(entry, row)))
+      ? setRowsWithAdded(current.resolved, entry?.addedSets, entry?.removedSets).find((row) => !isSetConfirmed(findSet(entry, row)))
       : undefined
     return next ? `${exercise.name}, set ${next.n} next` : exercise.name
   }, [current, entry, exercise])
@@ -407,6 +410,10 @@ function Deck() {
   useEffect(() => {
     if (phase === 'summary' && sessionId) void clearDeckState(sessionId)
   }, [phase, sessionId])
+  // D-093 rule 7: the deck of an ended session is never shown; a reload with the summary open lands here, so go to Today.
+  useEffect(() => {
+    if (phase === 'deck' && !api.loading && api.session?.endedAt) navigate('/', { replace: true })
+  }, [phase, api.loading, api.session?.endedAt, navigate])
 
   // D-033: a New user sees each exercise's demo open the first time it appears.
   const firstView = isNew && seenAtLoad !== null && Boolean(exerciseId) && !seenAtLoad.includes(exerciseId)
@@ -589,7 +596,7 @@ function Deck() {
       return
     }
     savedByDone.current = 0
-    for (const row of setRowsWithAdded(current.resolved, entry?.addedSets)) {
+    for (const row of setRowsWithAdded(current.resolved, entry?.addedSets, entry?.removedSets)) {
       const key = rowKey(current.item.id, row)
       const hasTyped = (['w', 'r', 'v'] as Box[]).some((box) => (drafts[boxKey(key, box)] ?? '').trim() !== '')
       const stored = findSet(entry, row)
@@ -684,8 +691,8 @@ function Deck() {
   function renderProgress() {
     if (!day) return null
     const session = api.session ?? undefined
-    const compared = compareWithLastWeek(session, deck, history, day.id)
-    const ready = readyToProgress(session, deck, history, (id) => program?.exercises[id] ?? library.find((l) => l.id === id)?.exercise)
+    const compared = compareWithLastWeek(session, deck, history, day.id, unitsOf(settings))
+    const ready = readyToProgress(session, deck, history, (id) => program?.exercises[id] ?? library.find((l) => l.id === id)?.exercise, unitsOf(settings))
     const counted = compared.up + compared.same + compared.down
     const firstWithLines = (['up', 'same', 'down'] as const).find((c) => compared[c] > 0) ?? 'up'
     const shownChange = compareView !== null && compared[compareView] > 0 ? compareView : firstWithLines
@@ -937,6 +944,7 @@ function Deck() {
           <h1 className="today-card__title">{day.focus ?? day.name} done</h1>
           <p className="today-card__sub">
             {summary.setsConfirmed} of {totalSets} sets · {minutes} min{summary.skipped > 0 ? ` · ${summary.skipped} skipped` : ''}
+            {summary.removed > 0 ? ` · ${summary.removed} ${summary.removed === 1 ? 'set' : 'sets'} removed` : ''}
           </p>
         </section>
         {swapped && <p className="note-v3">Logged as {day.name}’s session (days changed)</p>}
@@ -1158,10 +1166,29 @@ function Deck() {
     )
   }
 
-  // D-065 rule 5: today's rows include the sets added during the session.
+  // D-065 rule 5, D-093 rule 2: today's rows, with sets added or removed during the session.
   const addedSets = entry?.addedSets ?? 0
   const baseSets = Math.max(1, current.resolved.sets ?? 1)
-  const setNumbers = Array.from({ length: baseSets + addedSets }, (_, i) => i + 1)
+  const setNumbers = [...new Set(setRowsWithAdded(current.resolved, addedSets, entry?.removedSets).map((row) => row.n))]
+  const lastN = setNumbers[setNumbers.length - 1]
+  const lastRows: SetRow[] = current.resolved.perSide ? [{ n: lastN, side: 'L' }, { n: lastN, side: 'R' }] : [{ n: lastN }]
+  // D-093 rule 2: the last set, with nothing saved in it, can be removed while another set stays.
+  const canRemoveSet = setNumbers.length > 1 && !lastRows.some((row) => findSet(entry, row))
+  const removeLastSet = () => {
+    stopHolds()
+    for (const row of lastRows) clearBoxes(rowKey(current.item.id, row))
+    if (editingN === lastN) setEditingN(null)
+    void api.changeSets(current.item.id, exerciseId, baseSets, -1)
+  }
+  // D-093 rule 1: skip by choice only while nothing is saved for this exercise.
+  const choiceSkipped = isChoiceSkip(entry)
+  const canSkip = current.logged && !isCheckTile && !entry?.skipped && (entry?.sets ?? []).length === 0
+  const skipToday = () => {
+    stopHolds()
+    for (const row of setRowsWithAdded(current.resolved, addedSets, entry?.removedSets)) clearBoxes(rowKey(current.item.id, row))
+    setEditingN(null)
+    void api.setSkipped(current.item.id, exerciseId, true)
+  }
   // The chip and the hint sit under the first row still waiting for a value.
   const pendingN = setNumbers.find((n) => {
     const rows: SetRow[] = current.resolved.perSide ? [{ n, side: 'L' }, { n, side: 'R' }] : [{ n }]
@@ -1171,7 +1198,7 @@ function Deck() {
   function applySuggestion() {
     if (!current || !suggestion || suggestion.kind !== 'weight') return
     const fills: Record<string, string> = {}
-    for (const row of setRowsWithAdded(current.resolved, entry?.addedSets)) {
+    for (const row of setRowsWithAdded(current.resolved, entry?.addedSets, entry?.removedSets)) {
       if (isSetConfirmed(findSet(entry, row))) continue
       // D-051: the chip fills Weight; Reps keeps its own placeholder.
       fills[boxKey(rowKey(current.item.id, row), 'w')] = String(suggestion.to)
@@ -1187,7 +1214,7 @@ function Deck() {
   const restWords =
     isCheckTile || isCardioTile
       ? `Breathe. ${exercise?.name ?? 'This one'} is next.`
-      : pendingN !== undefined
+      : pendingN !== undefined && !entry?.skipped
         ? lastDone
           ? `${lastDone === 1 ? 'Good first set' : `Set ${lastDone} done`}. Breathe, set ${pendingN} is next.`
           : `Breathe. Set ${pendingN} is next.`
@@ -1219,19 +1246,6 @@ function Deck() {
     const extra = (
       <>
         {flaggedRow && <div className="dk-flag">Couldn’t read this. Tap to fix.</div>}
-        {/* D-065 rule 5: the last added set, with nothing saved, can be removed. */}
-        {n === baseSets + addedSets && n > baseSets && !rows.some((row) => findSet(entry, row)) && (
-          <button
-            type="button"
-            className="dk-addset dk-addset--remove"
-            onClick={() => {
-              for (const row of rows) clearBoxes(rowKey(current.item.id, row))
-              void api.changeAddedSets(current.item.id, exerciseId, -1)
-            }}
-          >
-            Remove set {n}
-          </button>
-        )}
         {n === pendingN && suggestion && (
           suggestion.kind === 'weight' ? (
             <button type="button" className="dk-chip" onClick={applySuggestion}>
@@ -1559,7 +1573,7 @@ function Deck() {
 
       <div className="dk-body">
         {entry?.skipped ? (
-          <p className="note-v3">Skipped today: discomfort.</p>
+          <p className="note-v3">{choiceSkipped ? 'Skipped today.' : 'Skipped today: discomfort.'}</p>
         ) : isCheckTile ? (
           <button
             type="button"
@@ -1582,27 +1596,46 @@ function Deck() {
 
         <div className="dk-tools">
           {!entry?.skipped && !isCheckTile && !isCardioTile && (
-            <button type="button" className="chip dk-addset" onClick={() => void api.changeAddedSets(current.item.id, exerciseId, 1)}>
+            <button type="button" className="chip dk-addset" onClick={() => void api.changeSets(current.item.id, exerciseId, baseSets, 1)}>
               + Add set
             </button>
           )}
-          <button type="button" className="chip dk-tool" onClick={() => setSheet('swap')}>
-            Swap
-          </button>
+          {!entry?.skipped && !isCheckTile && !isCardioTile && canRemoveSet && (
+            <button type="button" className="chip dk-addset dk-removeset" onClick={removeLastSet}>
+              − Remove set {lastN}
+            </button>
+          )}
+          {canSkip && (
+            <button type="button" className="chip dk-tool" onClick={skipToday}>
+              Skip today
+            </button>
+          )}
+          {choiceSkipped && (
+            <button type="button" className="chip dk-tool" onClick={() => void api.setSkipped(current.item.id, exerciseId, false)}>
+              Undo skip
+            </button>
+          )}
+          {!choiceSkipped && (
+            <button type="button" className="chip dk-tool" onClick={() => setSheet('swap')}>
+              Swap
+            </button>
+          )}
           {/* D-088 rule 1: the same Add exercise list as the Plan sheet; it lands after this item (D-069 rule 7). */}
           <button type="button" className="chip dk-tool" onClick={() => setAdding(true)}>
             + Add exercise
           </button>
-          <button
-            type="button"
-            className={entry?.feltOff ? 'chip chip--on dk-tool dk-tool--on' : 'chip dk-tool'}
-            onClick={() => {
-              setFeltChoice(entry?.feltOff ?? null)
-              setSheet('felt')
-            }}
-          >
-            {entry?.feltOff ? `Felt off: ${FELT_WORD[entry.feltOff]}` : 'Felt off'}
-          </button>
+          {!choiceSkipped && (
+            <button
+              type="button"
+              className={entry?.feltOff ? 'chip chip--on dk-tool dk-tool--on' : 'chip dk-tool'}
+              onClick={() => {
+                setFeltChoice(entry?.feltOff ?? null)
+                setSheet('felt')
+              }}
+            >
+              {entry?.feltOff ? `Felt off: ${FELT_WORD[entry.feltOff]}` : 'Felt off'}
+            </button>
+          )}
           {swapTo && (
             <button type="button" className="chip dk-tool" onClick={() => void api.chooseExercise(current.item.id, swapTo)}>
               Use {nameOf(swapTo)} instead
@@ -1664,6 +1697,7 @@ function Deck() {
           currentIndex={at}
           done={doneIds}
           inProgress={inProgressIds}
+          skipped={new Set(deck.filter((d) => findEntry(api.session ?? undefined, d.item.id)?.skipped).map((d) => d.item.id))}
           nameOf={(d) => nameOf(findEntry(api.session ?? undefined, d.item.id)?.exerciseId ?? d.resolved.exerciseId ?? '')}
           onJump={(index) => {
             setPlanOpen(false)
