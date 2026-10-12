@@ -276,6 +276,8 @@ export interface SentLogEntry {
   status?: 'sent' | 'failed'
   /** The error message of a failed call. */
   error?: string
+  /** D-097 rule 8: the reply's text, saved as it arrives. */
+  reply?: string
 }
 
 /** One reprogramming round trip, kept whether or not it was approved (D-016). */

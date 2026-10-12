@@ -56,11 +56,13 @@ function keysOf(message: string): string[] {
   return Object.keys(JSON.parse(message)).sort()
 }
 
+// D-097: the update sends one fixed shape (updatePayload.test.ts); the levels
+// below are checked on the review, which still uses them.
 describe('buildPayload (D-044)', () => {
   it('Minimal: no program notes, no session note, no currentStats, no experience', () => {
-    const { message } = buildPayload('update', 'minimal', true, data)
+    const { message } = buildPayload('review', 'minimal', true, data)
     const sent = JSON.parse(message)
-    expect(keysOf(message)).toEqual(['bodyEntries', 'goal', 'logged', 'program', 'rules', 'startedDayIds', 'task', 'week'])
+    expect(keysOf(message)).toEqual(['bodyEntries', 'goal', 'logged', 'program', 'rules', 'task'])
     expect(sent.program.notes).toBeUndefined()
     expect(sent.logged[0].entries[0].note).toBeUndefined()
     expect(message).not.toContain('currentStats')
@@ -74,8 +76,8 @@ describe('buildPayload (D-044)', () => {
   })
 
   it('Standard adds experience, nothing else', () => {
-    const { message, summary } = buildPayload('update', 'standard', true, data)
-    expect(keysOf(message)).toEqual(['bodyEntries', 'experience', 'feltOff', 'goal', 'logged', 'program', 'rules', 'startedDayIds', 'task', 'week'])
+    const { message, summary } = buildPayload('review', 'standard', true, data)
+    expect(keysOf(message)).toEqual(['bodyEntries', 'experience', 'feltOff', 'goal', 'logged', 'program', 'rules', 'task'])
     expect(JSON.parse(message).experience).toBe('new')
     expect(JSON.parse(message).program.notes).toBeUndefined()
     expect(summary.map((l) => l.label)).toContain('Experience level')
@@ -88,21 +90,21 @@ describe('buildPayload (D-044)', () => {
   })
 
   it('Full adds current weight; notes only when switched on', () => {
-    const off = buildPayload('update', 'full', false, data)
-    expect(keysOf(off.message)).toEqual(['bodyEntries', 'currentWeight', 'experience', 'feltOff', 'goal', 'logged', 'program', 'rules', 'startedDayIds', 'task', 'week'])
+    const off = buildPayload('review', 'full', false, data)
+    expect(keysOf(off.message)).toEqual(['bodyEntries', 'currentWeight', 'experience', 'feltOff', 'goal', 'logged', 'program', 'rules', 'task'])
     expect(JSON.parse(off.message).currentWeight).toEqual({ value: 82, unit: 'kg' })
     expect(JSON.parse(off.message).feltOff).toHaveLength(2)
     expect(off.message).not.toContain('Private program notes')
     expect(off.message).not.toContain('Shoulder felt tight')
     expect(off.message).not.toContain('bodyFatPct')
 
-    const on = buildPayload('update', 'full', true, data)
+    const on = buildPayload('review', 'full', true, data)
     expect(JSON.parse(on.message).program.notes).toBe('Private program notes')
     expect(JSON.parse(on.message).logged[0].entries[0].note).toBe('Shoulder felt tight')
   })
 
   it('Standard ignores the notes switch', () => {
-    const { message } = buildPayload('update', 'standard', true, data)
+    const { message } = buildPayload('review', 'standard', true, data)
     expect(message).not.toContain('Shoulder felt tight')
   })
 
@@ -178,7 +180,8 @@ describe('buildPayload (D-044)', () => {
 describe('body entries and week scores at every level (D-084 rule 2, task 10e)', () => {
   const withBody: PayloadData = { ...data, bodyEntries, weekReview }
   for (const level of ['minimal', 'standard', 'full'] as const) {
-    for (const kind of ['review', 'update', 'week_note'] as const) {
+    // D-097 rule 5 amends D-084 rule 2 for the update: it sends the current weight only.
+    for (const kind of ['review', 'week_note'] as const) {
       it(`${kind} at ${level} sends every body entry with all its fields and dates`, () => {
         const sent = JSON.parse(buildPayload(kind, level, false, withBody).message)
         expect(sent.bodyEntries).toEqual([

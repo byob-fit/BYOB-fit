@@ -6,6 +6,8 @@ import type { Program } from '../types/program.ts'
 import type { BodyEntry, Goals, MealFood, PrivacyLevel, ProgressView, Session, Settings } from '../types/stores.ts'
 import { fromGoals, goalSummary } from './goals.ts'
 import { compactSessions } from './reprogram.ts'
+import { buildUpdatePayload, currentBody, type UpdateFollowUp } from './updatePayload.ts'
+import { unitsOf } from '../settings/defaults.ts'
 
 export type CallKind = 'review' | 'update' | 'meals' | 'week_note'
 
@@ -38,7 +40,7 @@ export interface Payload {
 
 export interface PayloadData {
   program?: Program | null
-  /** Sessions the call may use: the current week for an update, the program's for a review. */
+  /** Sessions the call may use: last week and this week for an update (D-097), the program's for a review. */
   sessions?: Session[]
   goals?: Goals | null
   rules?: string
@@ -55,6 +57,8 @@ export interface PayloadData {
   bodyEntries?: BodyEntry[]
   /** D-081: the week being reviewed. */
   weekReview?: WeekReviewData
+  /** D-097 rule 7: Ask again, with the proposal on screen. */
+  followUp?: UpdateFollowUp
 }
 
 export const LEVEL_LABEL: Record<PrivacyLevel, string> = {
@@ -154,6 +158,21 @@ export function buildPayload(
     }
   }
 
+  // D-097: an update sends one fixed shape at every level; notes never go.
+  if (kind === 'update' && data.program) {
+    return buildUpdatePayload({
+      program: data.program,
+      week: data.week ?? 1,
+      startedDayIds: data.startedDayIds ?? [],
+      goals: data.goals ?? null,
+      body: currentBody(data.bodyEntries ?? [], data.goals),
+      rules: data.rules ?? '',
+      sessions: data.sessions ?? [],
+      units: unitsOf(data.settings),
+      followUp: data.followUp,
+    })
+  }
+
   const program = data.program
   const sessions = data.sessions ?? []
   const rules = data.rules ?? ''
@@ -174,10 +193,6 @@ export function buildPayload(
   ].filter((line) => kind !== 'week_note' || (line.label === 'Program' ? Boolean(program) : line.label === 'Logged' ? sessions.length > 0 : true))
 
   const message: Record<string, unknown> = { task: kind }
-  if (kind === 'update') {
-    message.week = data.week
-    message.startedDayIds = data.startedDayIds ?? []
-  }
   if (kind === 'week_note' && data.weekReview) {
     const review = data.weekReview
     // D-084 rule 2: the week's score and its parts, at every level.

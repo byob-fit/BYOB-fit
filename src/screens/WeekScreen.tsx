@@ -364,7 +364,7 @@ export function WeekScreen() {
                   Ask AI
                 </div>
                 <div className="ob-row__sub">
-                  {finished ? 'Uses what you’ve logged so far, against your goal. You see what’s sent first.' : 'Log a session first'}
+                  {finished ? 'Uses your last two weeks of logs, against your goal. You see what’s sent first.' : 'Log a session first'}
                 </div>
               </div>
             </button>

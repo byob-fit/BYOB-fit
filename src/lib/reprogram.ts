@@ -52,20 +52,30 @@ export type ProposalResult =
 
 // ── Prompts ──
 
-export const REPROGRAM_SYSTEM_PROMPT = `You update a strength-training program for one person, part way through a week.
+// D-097: the update prompt, approved by the owner Oct 11, 2026.
+export const REPROGRAM_SYSTEM_PROMPT = `You update one person's strength-training program part way through a program week. Change only what the logged numbers and the athlete's goal support, and always explain your judgment.
 
 You will be given one JSON message with:
 - "task": "update"
 - "week": the current program week number
-- "startedDayIds": the days already started this week
-- "rules": the athlete's own rules, as plain text
-- "goal": the athlete's structured goal (types, targets, timeframe, start date), or null
-- "experience" (only when the athlete allows it): "new" or "experienced"
-- "currentWeight" (only when the athlete allows it): { "value", "unit" }
-- "logged": the sessions logged so far this week, confirmed sets only
-- "program": the current program as JSON
+- "startedDayIds": days already started this week
+- "goal": the athlete's structured goal (types, targets, timeframe in weeks, start date)
+- "body": { "weight", "unit", "date" } and, when known, "bodyFatPct"
+- "rules" (only when the athlete has written some): the athlete's own rules, as plain text
+- "program": "exercises", every exercise in the program by id and name, and "days": this week's prescription: each day and, per item, its id, exercise id and name, type, sets, rep range, seconds, distance or minutes, rest, per side, alternate and unit
+- "logged": sessions from last week and this week, oldest first: date, day, and per item the sets done with weight, reps, seconds, distance or minutes as logged
+- "followUp" (only on a follow-up): { "previous": your last proposal, "instruction": the athlete's words }
 
-Changes to items on days not yet started apply this week; changes to items on a started day apply from next week. Nothing else about the athlete is sent.
+Weight is not a program field. The app suggests load increases itself, set by set, so never change load. Change only the fields you were given, or add or remove items.
+
+Timing: changes to items on days not yet started apply this week; changes to items on a started day apply from next week.
+
+Decide in this order:
+1. A follow-up instruction, if present: apply it wherever the program allows. If part of it cannot be done, say why in "notes".
+2. The athlete's rules, if present: where one applies, follow it exactly.
+3. Evidence: change an item only when its logged sessions point the same way. An item logged once or not at all stays as it is.
+4. Goal: every change must move the athlete toward a goal target within its timeframe, given their current weight and body fat. Name the target in the reason.
+5. Otherwise leave the item alone. No change is a valid and often correct answer.
 
 Return ONLY a JSON object, with no prose and no code fence, of exactly this shape:
 { "week": <the week number you were given>,
@@ -74,13 +84,13 @@ Return ONLY a JSON object, with no prose and no code fence, of exactly this shap
   "remove":    [ { "itemId": string, "reason": string } ],
   "notes": string }
 
+"notes" is shown to the athlete first and is never empty: two to five plain sentences on what you changed and why, or, if nothing, why not and what would trigger a change next time.
+
 Rules you must follow:
-- "fields" holds only the item properties you are changing, using the same names and types as the program file: exerciseId, type, perSide, sets, repMin, repMax, holdSec, distanceM, minutes, tempo, restSec, rpe, unit, index, logged, cue, notes, alternateExerciseId. Omit anything you are not changing.
+- "fields" holds only the item properties you are changing, using the same names and types as the program you were given: exerciseId, perSide, sets, repMin, repMax, holdSec, distanceM, minutes, restSec, alternateExerciseId. Omit anything you are not changing.
 - Every itemId, dayId, sectionId and afterItemId must already exist in the program you were given.
 - An item you add must carry a new unique "id", an "exerciseId" and a "type". If the exercise is not already in the program, include an "exercise" object ({ "name", "howTo" }) alongside "item" and use its new id as "exerciseId".
 - Weights stay in the unit each item already uses. Never convert between kg and lb.
-- Base every change on the logged sets you were given. Where the log does not support a change, leave the item alone.
-- Follow the athlete's rules exactly wherever they apply.
 - "reason" is one short sentence a person can check against the log.
 - Return the JSON object and nothing else.`
 

@@ -225,20 +225,29 @@ export function SendPreview({
           </span>
         </button>
         {open && <pre className="ai-raw" aria-label="Exact message">{payload.message}</pre>}
-        {level === 'full' && (
-          <div className="bd-toggle-row" style={{ marginTop: 0, borderTop: '1px solid var(--hairline)' }}>
-            <span>Include notes</span>
-            <Switch label="Include notes" on={includeNotes} onChange={onIncludeNotes} />
+        {kind === 'update' ? (
+          // D-097 rule 5: the update sends one fixed shape; levels and notes do not change it.
+          <div className="ai-level">
+            <span>The same at every privacy level.</span>
           </div>
+        ) : (
+          <>
+            {level === 'full' && (
+              <div className="bd-toggle-row" style={{ marginTop: 0, borderTop: '1px solid var(--hairline)' }}>
+                <span>Include notes</span>
+                <Switch label="Include notes" on={includeNotes} onChange={onIncludeNotes} />
+              </div>
+            )}
+            <div className="ai-level">
+              <span>
+                Privacy level: <b>{LEVEL_LABEL[level]}</b>
+              </span>
+              <button type="button" className="ai-level__change" onClick={onChangeLevel}>
+                Change
+              </button>
+            </div>
+          </>
         )}
-        <div className="ai-level">
-          <span>
-            Privacy level: <b>{LEVEL_LABEL[level]}</b>
-          </span>
-          <button type="button" className="ai-level__change" onClick={onChangeLevel}>
-            Change
-          </button>
-        </div>
         <div className="ai-never">{NEVER_SENT}</div>
         {notice && (
           <div className="ai-budget" role="status">

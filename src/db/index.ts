@@ -293,12 +293,14 @@ export async function setSentLogStatus(
   status: 'sent' | 'failed',
   error?: string,
   usage?: Pick<SentLogEntry, 'usage' | 'usageMissing'>,
+  reply?: string,
 ): Promise<void> {
   const db = await getDB()
   const entry = await db.get('sentLog', id)
   if (!entry) return
   const next: SentLogEntry = { ...entry, status, ...usage }
   if (error !== undefined) next.error = error
+  if (reply !== undefined) next.reply = reply
   await db.put('sentLog', next)
 }
 
