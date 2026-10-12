@@ -7,7 +7,7 @@ import type { LoadUnit, Program } from '../types/program.ts'
 import type { BodyEntry, Goals, Session } from '../types/stores.ts'
 import { toISODate } from './dates.ts'
 import { fromGoals, goalSummary } from './goals.ts'
-import { resolveItem, weekDates } from './program.ts'
+import { resolveItem } from './program.ts'
 import type { Proposal } from './reprogram.ts'
 import { isSetConfirmed } from './session.ts'
 
@@ -31,7 +31,7 @@ export interface UpdateInput {
   goals: Goals | null
   body: UpdateBody | null
   rules: string
-  /** Already narrowed by updateSessions. */
+  /** Already narrowed by updateSessions (D-098 rule 1). */
   sessions: Session[]
   /** The Settings unit, for items without their own (D-093 rule 6). */
   units: LoadUnit
@@ -61,13 +61,27 @@ export function updateBlocker(goals: Goals | null | undefined, body: UpdateBody 
   return null
 }
 
-/** D-097 rule 3: finished sessions of this program from last program week and this one. */
-export function updateSessions(program: Program, week: number, sessions: Session[]): Session[] {
-  const from = toISODate(weekDates(program, Math.max(1, week - 1))[0])
-  const to = toISODate(weekDates(program, week)[6])
+/** D-098 rule 1 (amends D-097 rule 3): finished sessions from the last 14 days, today included, from any program. */
+export function updateSessions(sessions: Session[], today: string): Session[] {
+  const [y, m, d] = today.split('-').map(Number)
+  const from = toISODate(new Date(y, m - 1, d - 13))
   return sessions
-    .filter((s) => s.endedAt && s.date >= from && s.date <= to && (s.programId === undefined || s.programId === program.id))
+    .filter((s) => s.endedAt && s.date >= from && s.date <= today)
     .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/** The exercises the program uses this week: each active item's exercise and its alternate. */
+function programExercises(program: Program, week: number): Set<string> {
+  const ids = new Set<string>()
+  for (const day of program.days)
+    for (const section of day.sections)
+      for (const item of section.items) {
+        if (item.retiredFrom) continue
+        const r = resolveItem(item, week)
+        ids.add(r.exerciseId ?? item.exerciseId)
+        if (r.alternateExerciseId) ids.add(r.alternateExerciseId)
+      }
+  return ids
 }
 
 const PRESCRIPTION = ['sets', 'repMin', 'repMax', 'holdSec', 'distanceM', 'minutes', 'restSec', 'perSide', 'alternateExerciseId'] as const
@@ -102,15 +116,20 @@ export function updateProgram(program: Program, week: number, units: LoadUnit) {
   return { exercises, days }
 }
 
-/** D-097 rule 3: per set, only the numbers logged; entries with no confirmed numbers are left out. */
-export function updateLogged(program: Program, sessions: Session[]) {
-  const itemExercise = new Map<string, string>()
-  for (const day of program.days) for (const section of day.sections) for (const item of section.items) itemExercise.set(item.id, item.exerciseId)
+/**
+ * D-098 rule 2: per set, only the numbers logged; every entry names its exercise,
+ * and its item only when that item is in this program. Entries for exercises the
+ * program does not use, and entries with no confirmed numbers, are left out.
+ */
+export function updateLogged(program: Program, week: number, sessions: Session[]) {
+  const itemIds = new Set<string>()
+  for (const day of program.days) for (const section of day.sections) for (const item of section.items) if (!item.retiredFrom) itemIds.add(item.id)
+  const exercises = programExercises(program, week)
   return sessions
     .map((session) => ({
       date: session.date,
-      dayId: session.dayId,
       entries: session.entries
+        .filter((entry) => itemIds.has(entry.itemId) || exercises.has(entry.exerciseId))
         .map((entry) => {
           const sets = entry.sets.filter(isSetConfirmed).map((set) => {
             const out: Record<string, unknown> = {}
@@ -119,8 +138,8 @@ export function updateLogged(program: Program, sessions: Session[]) {
             return out
           })
           return {
-            itemId: entry.itemId,
-            ...(itemExercise.get(entry.itemId) !== entry.exerciseId ? { exerciseId: entry.exerciseId } : {}),
+            exerciseId: entry.exerciseId,
+            ...(itemIds.has(entry.itemId) ? { itemId: entry.itemId } : {}),
             sets,
           }
         })
@@ -137,7 +156,7 @@ export function buildUpdatePayload(input: UpdateInput): { summary: { label: stri
   const { program, week, goals, body, followUp } = input
   const rules = input.rules.trim()
   const sentProgram = updateProgram(program, week, input.units)
-  const logged = updateLogged(program, input.sessions)
+  const logged = updateLogged(program, week, input.sessions)
   const training = sentProgram.days.filter((d) => !d.rest)
   const items = training.reduce((n, d) => n + (d.sections ?? []).reduce((m, s) => m + s.items.length, 0), 0)
   const sets = logged.reduce((n, s) => n + s.entries.reduce((m, e) => m + e.sets.length, 0), 0)
@@ -157,7 +176,7 @@ export function buildUpdatePayload(input: UpdateInput): { summary: { label: stri
 
   const summary = [
     { label: 'Program', value: `${count(training.length, 'training day')}, ${count(items, 'exercise')}` },
-    { label: 'Logged', value: `${count(sets, 'set')} from ${count(logged.length, 'session')}, ${week > 1 ? 'last week and this week' : 'this week'}` },
+    { label: 'Logged', value: `${count(sets, 'set')} from ${count(logged.length, 'session')}, last 14 days` },
     { label: 'Goal', value: goals ? goalSummary(fromGoals(goals), goals.timeframeWeeks, (id) => program.exercises[id]?.name).replace(/\.$/, '') : 'No goal set' },
     { label: 'Current weight', value: body ? `${body.weight} ${body.unit} on ${body.date}` : 'Not set' },
     { label: 'Body fat', value: body?.bodyFatPct !== undefined ? `${body.bodyFatPct}%` : 'Not set' },

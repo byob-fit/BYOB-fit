@@ -47,16 +47,17 @@ function session(date: string, extra: Partial<Session> = {}): Session {
   }
 }
 const sessions: Session[] = [
-  session('2026-09-20'), // week 3: outside the window
-  session('2026-09-28', { programId: 'sample-3day' }), // week 4
-  session('2026-10-05'), // week 5, no programId yet
+  session('2026-09-20'), // outside the 14 days
+  session('2026-09-28', { programId: 'sample-3day' }),
+  session('2026-10-05'), // no programId yet
   session('2026-10-06', { endedAt: undefined }), // unfinished
-  session('2026-10-07', { programId: 'other-program' }), // another program
+  session('2026-10-07', { programId: 'other-program' }), // an earlier program counts (D-098 rule 1)
 ]
+const today = '2026-10-07'
 const settings: Settings = { apiKey: 'sk-ant-SECRET', rules: 'No training to failure.', units: 'lb', onboarding: { experience: 'new' } }
 const data: PayloadData = {
   program,
-  sessions: updateSessions(program, 5, sessions),
+  sessions: updateSessions(sessions, today),
   goals,
   rules: settings.rules,
   settings,
@@ -90,28 +91,24 @@ describe('blockers (D-097 rules 1 and 2)', () => {
   })
 })
 
-describe('two weeks of history (D-097 rule 3)', () => {
-  it('keeps finished sessions of this program from last week and this week', () => {
-    expect(updateSessions(program, 5, sessions).map((s) => s.date)).toEqual(['2026-09-28', '2026-10-05'])
+describe('history (D-097 rule 3 as amended by D-098 rules 1 and 2)', () => {
+  it('keeps finished sessions from the last 14 days, from any program', () => {
+    expect(updateSessions(sessions, today).map((s) => s.date)).toEqual(['2026-09-28', '2026-10-05', '2026-10-07'])
   })
-  it('in week 1 there is no last week', () => {
-    expect(updateSessions(program, 1, [session('2026-09-07'), session('2026-09-14')]).map((s) => s.date)).toEqual(['2026-09-07'])
-  })
-  it('sends only the numbers logged, per set', () => {
-    const logged = updateLogged(program, updateSessions(program, 5, sessions))
+  it('sends only the numbers logged, per set, with the exercise and item', () => {
+    const logged = updateLogged(program, 5, updateSessions(sessions, today))
     expect(logged[0]).toEqual({
       date: '2026-09-28',
-      dayId: 'mon',
       entries: [
-        { itemId: 's006', sets: [{ weight: 60, reps: 8 }] },
-        { itemId: 's003', sets: [{ minutes: 5 }] },
+        { exerciseId: 'bench-press', itemId: 's006', sets: [{ weight: 60, reps: 8 }] },
+        { exerciseId: 'walk', itemId: 's003', sets: [{ minutes: 5 }] },
       ],
     })
   })
-  it('names the exercise only when it differs from the program’s', () => {
+  it('keeps a swapped exercise under its item', () => {
     const swapped = session('2026-10-05')
     swapped.entries[0] = { ...swapped.entries[0], exerciseId: 'incline-db-press' }
-    expect(updateLogged(program, [swapped])[0].entries[0]).toEqual({ itemId: 's006', exerciseId: 'incline-db-press', sets: [{ weight: 60, reps: 8 }] })
+    expect(updateLogged(program, 5, [swapped])[0].entries[0]).toEqual({ exerciseId: 'incline-db-press', itemId: 's006', sets: [{ weight: 60, reps: 8 }] })
   })
 })
 
@@ -158,7 +155,7 @@ describe('one fixed payload (D-097 rule 5)', () => {
   it('summarises what is sent', () => {
     const { summary } = buildPayload('update', 'minimal', false, data)
     expect(summary.map((l) => l.label)).toEqual(['Program', 'Logged', 'Goal', 'Current weight', 'Body fat', 'Your training rules'])
-    expect(summary.find((l) => l.label === 'Logged')?.value).toBe('4 sets from 2 sessions, last week and this week')
+    expect(summary.find((l) => l.label === 'Logged')?.value).toBe('6 sets from 3 sessions, last 14 days')
     expect(summary.find((l) => l.label === 'Current weight')?.value).toBe('83 kg on 2026-10-01')
     expect(summary.find((l) => l.label === 'Body fat')?.value).toBe('22.4%')
   })

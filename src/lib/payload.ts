@@ -2,7 +2,7 @@
 // preview (frames 4h, 4i) and the request, so the preview is what is sent.
 // Pure: no storage, no clock.
 
-import type { Program } from '../types/program.ts'
+import type { LoadUnit, Program } from '../types/program.ts'
 import type { BodyEntry, Goals, MealFood, PrivacyLevel, ProgressView, Session, Settings } from '../types/stores.ts'
 import { fromGoals, goalSummary } from './goals.ts'
 import { compactSessions } from './reprogram.ts'
@@ -82,11 +82,22 @@ function linesOf(text: string): string[] {
   return text.split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
-/** D-044: the program without its top-level notes, unless notes are opted in. */
-function programFor(program: Program, withNotes: boolean): Program {
-  if (withNotes) return program
-  const copy = { ...program }
-  delete copy.notes
+/**
+ * D-044: the program without its top-level notes, unless notes are opted in.
+ * D-098 rule 4: an item with sets and no unit of its own carries the Settings unit.
+ */
+function programFor(program: Program, withNotes: boolean, units: LoadUnit): Program {
+  const copy: Program = {
+    ...program,
+    days: program.days.map((day) => ({
+      ...day,
+      sections: day.sections.map((section) => ({
+        ...section,
+        items: section.items.map((item) => (item.sets !== undefined && item.unit === undefined ? { ...item, unit: units } : item)),
+      })),
+    })),
+  }
+  if (!withNotes) delete copy.notes
   return copy
 }
 
@@ -235,7 +246,7 @@ export function buildPayload(
   }
 
   message.logged = sessionsFor(sessions, withNotes)
-  message.program = program ? programFor(program, withNotes) : null
+  message.program = program ? programFor(program, withNotes, unitsOf(data.settings)) : null
   return { summary, message: JSON.stringify(message, null, 2) }
 }
 

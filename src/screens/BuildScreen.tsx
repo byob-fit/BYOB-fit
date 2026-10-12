@@ -71,8 +71,8 @@ export function BuildScreen() {
     const dates = weekDates(program, week).map(toISODate)
     return sessions.filter((s) => s.date >= dates[0] && s.date <= dates[6])
   }, [program, week, sessions])
-  // D-097 rule 3: last program week and this one, this program only.
-  const recent = useMemo(() => (program ? updateSessions(program, week, sessions) : []), [program, week, sessions])
+  // D-098 rule 1: the last 14 days, from any program.
+  const recent = useMemo(() => updateSessions(sessions, todayIso), [sessions, todayIso])
   const body = useMemo(() => currentBody(bodyEntries, goals), [bodyEntries, goals])
   const blocker = goals === undefined ? null : updateBlocker(goals, body)
   const started = useMemo(() => (program ? startedDays(program, week, thisWeek, todayIso) : new Set<string>()), [program, week, thisWeek, todayIso])

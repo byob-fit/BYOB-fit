@@ -52,7 +52,7 @@ export type ProposalResult =
 
 // ── Prompts ──
 
-// D-097: the update prompt, approved by the owner Oct 11, 2026.
+// D-097: the update prompt, approved by the owner Oct 11, 2026; D-098 rule 3 widens "logged".
 export const REPROGRAM_SYSTEM_PROMPT = `You update one person's strength-training program part way through a program week. Change only what the logged numbers and the athlete's goal support, and always explain your judgment.
 
 You will be given one JSON message with:
@@ -63,8 +63,10 @@ You will be given one JSON message with:
 - "body": { "weight", "unit", "date" } and, when known, "bodyFatPct"
 - "rules" (only when the athlete has written some): the athlete's own rules, as plain text
 - "program": "exercises", every exercise in the program by id and name, and "days": this week's prescription: each day and, per item, its id, exercise id and name, type, sets, rep range, seconds, distance or minutes, rest, per side, alternate and unit
-- "logged": sessions from last week and this week, oldest first: date, day, and per item the sets done with weight, reps, seconds, distance or minutes as logged
+- "logged": sessions from the last 14 days, oldest first, from this program and any earlier one: the date and, per entry, the exercise id, the item id when the item is in this program, and the sets done with weight, reps, seconds, distance or minutes as logged
 - "followUp" (only on a follow-up): { "previous": your last proposal, "instruction": the athlete's words }
+
+Match logged sessions to program items by exercise id; sessions from an earlier program count as evidence for the same exercise.
 
 Weight is not a program field. The app suggests load increases itself, set by set, so never change load. Change only the fields you were given, or add or remove items.
 
