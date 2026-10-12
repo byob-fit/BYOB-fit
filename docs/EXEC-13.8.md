@@ -1,0 +1,31 @@
+# EXEC-13.8: AI update history across programs; units in notes (v1.0, Oct 11, 2026)
+
+You are the execution pipeline for BYOB-fit. Implement the numbered tasks exactly and touch only what they name; no new dependencies, no change to `package.json` or `package-lock.json`. The code and its tests were prototyped and checked in chat and arrive as two patches: apply each exactly; if one does not apply cleanly, STOP and report, do not hand-merge. Nothing under `.github/` changes. If a step would touch `main` directly, commit anything under `seed/`, or needs a choice not covered here, STOP and ask. Routine choices inside scope: decide, proceed, list under "Judgment calls". After task 2, read `docs/DECISIONS.md` D-098 (D-099 is recorded for the next change; build nothing of it). No file or commit may name the owner (D-091 rule 2): run the identifier list where task 6 says. No real API key and none of the owner's data in any test, script, log or report; every AI request in the checks is intercepted.
+
+Three commits on a branch, each passing `npm run verify`, `npm run lint` and the full test suite on its own: A contracts, B the code, C the tests.
+
+Working directory: `~/Code/BYOB-fit-org`.
+
+## Tasks
+
+1. Baseline. `git checkout main && git pull --ff-only && git checkout -b small-13.8`. `git log --oneline -1` must show `e265003` (main was force-pushed back to it, PLAN v1.35); STOP if it shows `5fc0e97` or anything else. `git config user.name` must be "BYOB-fit maintainers" and `git config user.email` noreply@byob-fit.invalid; STOP if not. Write `docs/EXEC-13.8.md` from the pasted text and confirm its md5 against the owner's value; STOP if it differs. Confirm on `main`: `docs/PLAN.md` e4736a5083db95657e224a24d91b31fb, `docs/DECISIONS.md` eeb0d449209bbfb599404ef48ce83e39, `docs/EXEC-13.7.md` 4458b72316626f62fc823c3253ad5e41; STOP if any differ. The full test suite reports 798 tests.
+
+2. Place by md5 from `~/Downloads` (older files of the same names exist): `docs/PLAN.md` 7dfbcc1de2ce31303af58859a4106293, `docs/DECISIONS.md` 1f0fde5b99e44b7022bc3ed2757d5796. Re-hash both in the repo; STOP if either differs. Commit A with `docs/EXEC-13.8.md`: `Contracts: plan v1.35, D-098, D-099, EXEC-13.8`.
+
+3. Commit B, the code. Find `fixes-13.8.patch` in `~/Downloads` by md5 6f73399aa7ece122a1baa3180064ff12; STOP if absent; never commit it. `git apply --check`, then `git apply`. `git diff --stat` must show 5 files, 75 insertions, 46 deletions: `src/lib/payload.ts`, `src/lib/reprogram.ts`, `src/lib/updatePayload.ts`, `src/lib/updatePayload.test.ts`, `src/screens/BuildScreen.tsx`; STOP if not. The suite reports 797 tests passing (the week-1 case of D-097 rule 3 no longer exists); lint and verify pass. Commit: `13.8 B: AI update history across programs; units in notes (D-098)`.
+
+4. Commit C, the tests. Find `tests-13.8.patch` in `~/Downloads` by md5 3ee9d5c9defb286073f8597c17f51780; STOP if absent; never commit it. `git apply --check`, then `git apply`. It adds exactly `src/lib/updateHistory.test.ts` (68 insertions); STOP if anything else changes. The suite reports 806 tests passing; lint and verify pass. `npm run build` then gives `index-y3YtRAXk.js` c3f76e82cb1c3439e27dc1db3c2f6ae9 and `index-C5vp0iOg.css` 0d694dd3db4e7b5e475312be81a7b4ab (chat's build of the same tree); report yours either way. Commit: `13.8 C: tests for D-098`.
+
+## Checks and report
+
+5. After commit C, scripted in WebKit and Chromium at 390 × 844 under the D-066 policy, against `npm run build` and `vite preview`, service workers blocked, browser clock Monday, Oct 12, 2026, 08:00 local, hash routes. Every request to `api.anthropic.com` is intercepted; placeholder key only. Test data in the scratchpad, never committed, set up as in EXEC-13.7 task 5 (sample program imported, how-to `HOWTO-MARKER`, goal, a body entry 2026-10-10 of 83.4 kg and 21.5%). Evidence in the report.
+   a. Regression: EXEC-13.7 checks 5a to 5g pass unchanged, except that the preview's Logged line now ends "last 14 days".
+   b. New program, first week: set the active program's `startDate` to 2026-10-11. Add two finished sessions of another program (`programId` `old-program`) on 2026-10-01 and 2026-10-05, each with an entry `itemId` `old-01`, `exerciseId` `bench-press`, one set 55 × 8, and an entry `itemId` `old-02`, `exerciseId` `zercher-squat`, one set 80 × 5; and one finished session of the active program on 2026-10-12 with item `s006`, two sets 60 × 8. The preview's exact message lists `logged` dates 2026-10-01, 2026-10-05, 2026-10-12; the 2026-10-01 entries are exactly `[{ exerciseId: 'bench-press', sets: [{ weight: 55, reps: 8 }] }]`; `zercher-squat` and `old-0` appear nowhere; no session carries `dayId`; the Logged line reads "4 sets from 3 sessions, last 14 days".
+   c. A session dated 2026-09-28 (14 days before the clock) is not in `logged`; one dated 2026-09-29 is.
+   d. Units: remove `unit` from item `s006` and set Settings units to lb. Progress → Training → Review this week, and the AI review's preview: under "Show exactly what’s sent", `s006` carries `"unit": "lb"` and `s019` keeps `"kg"`; after closing, IndexedDB still has `s006` without `unit`.
+   e. Regression: 13.6's checks 5a to 5f and 13.5's 5a; no policy violation on any route; `npm audit` reports 0.
+   f. No user-facing text added by this change contains an em dash or a straight apostrophe (the AI prompt is excluded, as in D-092 rule 7).
+
+6. Identifier list: `~/Downloads/blocklist-14.txt` by md5 a620339736c93c9b58ebc245459e7846, never committed or copied. Run it, case-insensitive, over every file of the branch and over `git log main..HEAD --format='%an %ae %cn %ce%n%B'`: the only match is the `LICENSE` copyright line; report line numbers only. `git diff --stat main`: only the files of tasks 2 to 4; nothing under `.github/` or `seed/`.
+
+7. Push `small-13.8` and open the pull request **as a draft**: `gh pr create --draft --title "Small change 13.8: AI update history across programs; units in notes"`. Do not mark it ready and do not merge: the owner merges by fast-forward from the terminal after chat's check (`git push origin small-13.8:main`), never with GitHub's merge buttons. Report PASS or FAIL per task with evidence and per-commit hashes, then Judgment calls, then anything noticed but not changed.
