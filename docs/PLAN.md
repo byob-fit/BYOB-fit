@@ -2,7 +2,7 @@
 
 BYOB = Build Your Own Body (STATED, Sep 12, 2026). Repo and app name: BYOB-fit.
 
-Version: 1.33 · Date: Sunday, Oct 11, 2026 (v1.32 Oct 11, v1.31 Oct 10, v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
+Version: 1.34 · Date: Sunday, Oct 11, 2026 (v1.33 Oct 11, v1.32 Oct 11, v1.31 Oct 10, v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
 
 Provenance convention throughout: STATED (the owner) · VERIFIED (checked in chat, with source) · MODELED (Claude's estimate, method shown) · DEFAULT (Claude's proposal pending redirect).
 
@@ -307,6 +307,11 @@ Small change 13.5: built Oct 11, 2026 (pull request #4; `main` fast-forwarded to
 
 ### Small change 13.6: Progress kept across program imports (gate: on the owner's iPhone, installed app: before importing, Progress reads as before; import the new program: the old program is still stored, Progress reads "Week n review" for the right week with the score card naming "Program 2 · Week n", the calendar shows "Program 1" and "Program 2" headings, and old weeks keep their dots and scores; an exercise's Log still shows its history)
 D-095, D-096. Executor prompt EXEC-13.6; the code and its tests arrive as two exact patches, committed separately; pull request as a draft, merged by fast-forward. No database version change.
+
+Small change 13.6: on `main` at 6744cdd (verified in chat, Oct 11, 2026). Gate result not yet reported in chat.
+
+### Small change 13.7: AI update, goal and weight required, the reason shown (gate: on the owner's iPhone, installed app, own key: with the goal in place, Week → Update program → Ask AI opens the preview reading "The same at every privacy level." with Current weight and Body fat lines and no how-to text under "Show exactly what’s sent"; one real update completes and its "Why" card explains the result in plain sentences; Ask again with one instruction returns a new proposal; Decline or Done leaves the program unchanged; Settings → AI usage shows the sends)
+D-097. Executor prompt EXEC-13.7; the code and its tests arrive as two exact patches, committed separately; pull request as a draft, merged by fast-forward. No database version change (`reply` is an optional field).
 ### Release to the focus group (decisions D-090, D-091; contract after the snapshot)
 The tester notice, README, the how-to guide (Phase 13G), the feedback email link, one real Android check.
 
@@ -328,8 +333,8 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 
 | File | Role | md5 |
 |---|---|---|
-| docs/DECISIONS.md | Decision records D-001 to D-096 | bbdfce6be41b0d17354d7a755307896e |
-| docs/PLAN.md | This file, v1.33 | recorded in chat at delivery (a file cannot carry its own hash) |
+| docs/DECISIONS.md | Decision records D-001 to D-097 | eeb0d449209bbfb599404ef48ce83e39 |
+| docs/PLAN.md | This file, v1.34 | recorded in chat at delivery (a file cannot carry its own hash) |
 | docs/DESIGN-BRIEF.md | Claude Design brief v1.0, placeholder data only | f216f6b548bad5894bbdc974259a6889 |
 | docs/DESIGN-BRIEF-v2.md | Claude Design brief v2.0 | de3ff85f61214a2b812b8a5922d60967 |
 | docs/DESIGN-BRIEF-v2.1.md | Claude Design brief v2.1 | 4eed874c85c1184cba28c7ebfccf4fad |
@@ -364,7 +369,8 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 | docs/EXEC-13.3.md | Executor prompt, small change 13.3 | 5c21beaf8df99e98260637d929aa795a (as committed on main at 04c7124) |
 | docs/EXEC-13.4.md | Executor prompt, small change 13.4 | 0bf6ec2803fbb0fb73528bdfded4f84b (as committed on main at 156e31a) |
 | docs/EXEC-13.5.md | Executor prompt, small change 13.5 | a03259e64c8819119eeb4a04686e001c (as committed on main at fdadf30) |
-| docs/EXEC-13.6.md | Executor prompt, small change 13.6 | recorded in chat at delivery (it checks this file's hash) |
+| docs/EXEC-13.6.md | Executor prompt, small change 13.6 | a4f5e63e736d43e645f4c2cccb9ce6cc (as committed on main at 6744cdd) |
+| docs/EXEC-13.7.md | Executor prompt, small change 13.7 | recorded in chat at delivery (it checks this file's hash) |
 | public/icon.svg | App icon master, stacked BYOB on #1D1D1F (D-087 rule 4) | 6cfad95c9fb18f76938528984a0b2627 |
 | design/icon-maskable.svg | Maskable icon master, glyphs inside the 40% safe circle | 579142575063be489845973f6670e140 |
 | public/pwa-192.png | Icon 192 | b3f126321ff863a86256eb44be1d1418 |
