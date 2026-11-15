@@ -344,7 +344,7 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 
 | File | Role | md5 |
 |---|---|---|
-| docs/DECISIONS.md | Decision records D-001 to D-104 | b9119d90f27d1a6f2f9d66fda9ee220e |
+| docs/DECISIONS.md | Decision records D-001 to D-104 | 32d3380548d425f098937ffc646f3d62 |
 | docs/PLAN.md | This file, v1.36 | recorded in chat at delivery (a file cannot carry its own hash) |
 | docs/DESIGN-BRIEF.md | Claude Design brief v1.0, placeholder data only | f216f6b548bad5894bbdc974259a6889 |
 | docs/DESIGN-BRIEF-v2.md | Claude Design brief v2.0 | de3ff85f61214a2b812b8a5922d60967 |
@@ -384,7 +384,7 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 | docs/EXEC-13.7.md | Executor prompt, small change 13.7 | 4458b72316626f62fc823c3253ad5e41 (as committed at 1a0cdb3) |
 | docs/EXEC-13.8.md | Executor prompt, small change 13.8 | 44e615bf3ef86d85d1d7c0525c14166d (as committed at ad88be4) |
 | docs/EXEC-13.10.md | Executor prompt, small change 13.10 | recorded in chat at delivery (it checks this file's hash) |
-| public/catalog/exercises.json | Built-in exercise catalog, 103 exercises and 91 machine names (D-101) | db224a8c56d6258be129b80d2fe8c90a |
+| public/catalog/exercises.json | Built-in exercise catalog, 103 exercises and 91 machine names (D-101) | 25ac651fcd3753c1460720ed1d7937e6 |
 | public/icon.svg | App icon master, stacked BYOB on #1D1D1F (D-087 rule 4) | 6cfad95c9fb18f76938528984a0b2627 |
 | design/icon-maskable.svg | Maskable icon master, glyphs inside the 40% safe circle | 579142575063be489845973f6670e140 |
 | public/pwa-192.png | Icon 192 | b3f126321ff863a86256eb44be1d1418 |

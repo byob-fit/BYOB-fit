@@ -842,8 +842,8 @@
       "equipment": "cardio_machine",
       "level": "intermediate"
     },
-    "jacobs-ladder": {
-      "name": "Jacob’s ladder",
+    "ladder-climber": {
+      "name": "Ladder climber",
       "howTo": "Climb with your hands and feet at a steady pace, keeping your hips close to the ladder. Start with short intervals.",
       "muscles": [
         "cardio"
@@ -991,7 +991,7 @@
     "hip-thrust-machine": "Hip thrust machine",
     "incline-bb-press": "Incline barbell press station",
     "incline-walk": "Treadmill",
-    "jacobs-ladder": "Jacob’s ladder",
+    "ladder-climber": "Ladder climbing machine",
     "lat-pulldown": "Lat pulldown station",
     "leg-curl": "Seated leg curl machine",
     "leg-extension": "Leg extension machine",
