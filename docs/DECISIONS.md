@@ -657,3 +657,49 @@ Stated by the owner, Oct 11, 2026: the weekly review screen is a dead end and ne
 4. Training notes also offer "Edit program", which opens the builder.
 5. Blockers, the fixed payload, privacy and reply saving are as D-097 and D-098.
 Consequence: small change 13.9, after 13.8 is merged.
+
+## D-100 Tab bar and docks return to the bottom after the keyboard closes (FROZEN, Nov 14, 2026)
+Reported by the owner, Nov 14, 2026, with a screenshot from the installed app (iOS 27.2.1, stated by the owner): on a deck page the tab bar and the Done dock sat in the middle of the screen with page content showing below them, still present after earlier fixes.
+1. What the screenshot shows (measured in chat): the header is at the top of the screen; the tab bar's lower edge is at about 70% of the screen height; the dock sits directly above it. Both are placed from the bottom of the window (`.tabbar` is `position: fixed; bottom: 0`, `.dk-foot` is `position: sticky`), so the window the browser reports is shorter than the screen by roughly the height of the number keyboard.
+2. Cause: HYPOTHESIS, not reproduced in chat (it needs iOS and an installed app). After the keyboard closes, iOS can leave the window at its keyboard-open height. Sources read Nov 14, 2026: Apple Developer Forums threads 800125 and 800154 (iOS 26: after the keyboard is dismissed the visible window stays shorter or shifted and fixed bars are misplaced); WebKit bug 218983 (open since 2020: window height unreliable in an installed app); one developer write-up (dev.to, "Fixing the iOS standalone-PWA keyboard bug that shrinks your viewport for good", tested by its author on iOS 17 and 18 only) reporting that taking a full-height element out of layout for one synchronous pass makes WebKit measure the window again. No source covers iOS 27; one source for the remedy: both flagged.
+3. Rule. The app records the tallest window height seen at the current width (a new width, as after rotation, starts again). 150 ms after focus leaves a field, and when the app returns to the front, if no field has focus, the page is not zoomed, and the window or its visible part is more than 4 px shorter than that record or shifted by more than 4 px, the app takes `#root` out of layout for one synchronous pass, puts it back and restores the scroll position. Nothing is unmounted and no data is touched. It runs on every screen, the full-screen flows included.
+4. Known cost when it runs: a sheet's own scroll position and any running CSS animation restart. It runs only in the stuck state.
+5. Checked in chat (Chromium, 390 × 844, built app, service workers blocked): with a full window, focus leaving a field changes nothing; with the window cut to 587 px and no field in focus, the re-measure runs once, the page stays at its scroll position and no error is logged. WebKit was not available in chat: the executor runs the same check in WebKit.
+6. If the gate fails on the phone, no further guess is built: the next step is a screen recording of the keyboard closing.
+Consequence: small change 13.10.
+
+## D-101 Built-in exercise catalog with machine names (FROZEN, Nov 14, 2026; amends D-042 rule 7)
+Stated by the owner, Oct 10 and Nov 14, 2026: Add and Swap offer too few exercises; the catalog should cover every machine of a full gym and name the machine. Verified on `main` (5c6c6f9): the library was the 37 exercises of the three starter programs plus stored programs, and no catalog existed; a 92-exercise draft from Oct 10 was never contracted.
+1. `public/catalog/exercises.json` holds 103 exercises (the Oct 10 draft of 92, md5 1adce5f23ac2a20ffd0a3ff84eca9105, unchanged, plus 11 added Nov 14), each with name, how-to, muscles, equipment and level, and a `machines` map from exercise id to the machine or station it is done on (91 entries, covering catalog and starter exercises). It is precached for offline use.
+2. Library order (D-042 rule 7 as amended): starter programs, stored programs, then the catalog; the first id wins, so a program's own exercise is never replaced. Starters plus catalog: 140 exercises.
+3. The machine name is shown under the exercise name in the pickers and is searched with the name. It lives beside the exercise in the library, never inside a program file, so the program schema is unchanged.
+4. DEFAULT (chat, Nov 14; the owner asked for machine names without saying brand or generic): machine names are generic ("Leg press", "Smith machine", "Cable lift and step station"), with no brand or product line. Reasons: testers train in other gyms, and a brand-by-brand list is the owner's gym (D-091).
+5. Coverage. The owner's 55-item equipment list was checked line by line in chat on Nov 14: 47 items were covered by the draft, 3 had no fitting exercise and 5 only a loose one. The 11 additions close them: lying leg curl, seated machine row, cable chest press, cable shoulder press, cable lift, cable step-up, machine squat, machine triceps extension, machine hip thrust, machine hip extension, decline sit-up. What four of the listed machines do was read from their names, not from photos: HYPOTHESIS until the owner confirms.
+6. The how-to text is drafted in chat from standard form cues and is not sourced; the owner reviews it (the ones with real injury risk: Nordic curl, glute-ham raise, Turkish get-up, kettlebell swing). It meets D-092 (American spelling, curly apostrophes, no em dash), checked by a test.
+7. A catalog that fails to load leaves the pickers working from the other sources; an entry that is not a valid exercise is left out.
+8. No gym-equipment profile or filter (the owner's decision, Oct 10): exercises that need equipment a given gym lacks still appear.
+Consequence: small change 13.10.
+
+## D-102 Add any exercise, or write a new one, during a workout (FROZEN, Nov 14, 2026; amends D-069 rules 7 and 8)
+Stated by the owner, Nov 14, 2026: a way to write a new exercise when needed and add it, with weight, time, distance, reps and sets set personally. Verified on `main` (5c6c6f9): Add listed only the items of the user's own program, and Create an exercise was switched off in the workout's Swap.
+1. Add exercise keeps its list of the program's items and gains "Choose from all exercises, or create one", which opens the picker over the whole library with Create an exercise (name required; how-to, muscles, equipment and level optional).
+2. After a pick, the step "How do you want to log it today?" sets the type (weight and reps, reps, timed hold, distance, minutes, check off), sets, rep range, seconds, distance or minutes, and rest. Starting values come from that exercise in the program when it is there, otherwise common values by kind (cardio machine: 20 minutes; no equipment: 3 sets of 8 to 12 reps; everything else: 3 sets of 8 to 12 with weight). A weight is never pre-filled. Nothing is stored until "Add for today".
+3. The exercise goes right after the current one, for today only, and is logged in today's session with that prescription. The session summary's "Keep in program" adds it to that day with the same prescription.
+4. The workout's Swap also offers Create an exercise.
+5. An exercise picked from the library or created during a workout is copied into the program's exercise list at that moment, so its name and how-to stay with what was logged and it appears in later pickers. No item is added to any day by this.
+Consequence: small change 13.10.
+
+## D-103 Progression suggestion: skipped sessions and earlier programs (FROZEN, Nov 14, 2026; amends D-047's history, not its rule)
+Stated by the owner, Nov 14, 2026: the "Try a new weight" suggestion appears rarely and on few exercises. Checked in code on `main` (5c6c6f9), not against the owner's logs: the rule works as D-047 wrote it (two consecutive sessions, every working set at the top of the rep range, one identical weight), and two gaps suppress it beyond the rule.
+1. A session in which the exercise was skipped by choice with nothing logged (D-093 rule 1) is not a session of that exercise: the rule looks at the last sessions in which it was done. A Discomfort skip (D-048) still counts and still blocks.
+2. Sessions of the same exercise logged under an item that is not in the current program (an earlier or re-imported program) count as history, newest first together with the item's own, as D-098 did for the AI update. Entries from another item of the current program, added exercises and changed exercises are not borrowed.
+3. Unchanged, proposed in chat Nov 14 and not overruled: the D-047 rule itself, and a session with a removed set still does not qualify.
+Consequence: small change 13.10.
+
+## D-104 End an earlier day's session from Week (FROZEN, Nov 14, 2026)
+Stated by the owner, Nov 14, 2026: a workout he forgot to end shows as partly done, and it should be possible to go back and end it. Verified on `main` (5c6c6f9): a session without an end time shows "Partly done"; earlier days in Week had no action; scores, charts, week notes and the AI update read only ended sessions, so a forgotten End also left the workout uncounted.
+1. In Week, an earlier date whose session has something logged and no end shows "End session". It asks first ("End Monday's session?", what was logged is kept and the day counts as done), then ends the session as it stands, as End does (D-069 rule 4). The day then shows Done and its sets can be edited in Progress (D-069 rule 10).
+2. The end time stored is the moment the user confirms, as for every End (D-075 rule 3).
+3. Not offered for today (the deck's End does that), for an ended session, or for a session with nothing logged.
+Consequence: small change 13.10.
+

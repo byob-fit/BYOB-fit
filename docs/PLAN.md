@@ -2,7 +2,7 @@
 
 BYOB = Build Your Own Body (STATED, Sep 12, 2026). Repo and app name: BYOB-fit.
 
-Version: 1.35 · Date: Sunday, Oct 11, 2026 (v1.34 Oct 11, v1.33 Oct 11, v1.32 Oct 11, v1.31 Oct 10, v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
+Version: 1.36 · Date: Saturday, Nov 14, 2026 (v1.35 Oct 11, v1.34 Oct 11, v1.33 Oct 11, v1.32 Oct 11, v1.31 Oct 10, v1.30 Oct 8, v1.29 Oct 5, v1.28 Oct 5, v1.27 Oct 4, v1.26 Oct 3, v1.25 Oct 3, v1.24 Oct 2, v1.23 Oct 2, v1.22 Oct 2, v1.21 Oct 1, v1.20 Oct 1, v1.19 Sep 30, v1.18 Sep 30, v1.17 Sep 30, v1.16 Sep 29, v1.15 Sep 29, v1.14 Sep 28, v1.13 Sep 28, v1.12 Sep 28, v1.11 Sep 28, v1.10 Sep 28, v1.9 Sep 28, v1.8 Sep 28, v1.7 Sep 28, v1.6 Sep 28, v1.5 Sep 27, v1.4 Sep 14, v1.3 Sep 13, v1.2 Sep 12) · Owner: The owner · Chat pipeline: this Claude chat (decisions) · Execution pipeline: Claude Code in VS Code (implementation)
 
 Provenance convention throughout: STATED (the owner) · VERIFIED (checked in chat, with source) · MODELED (Claude's estimate, method shown) · DEFAULT (Claude's proposal pending redirect).
 
@@ -320,6 +320,9 @@ D-098. Executor prompt EXEC-13.8; the code and its tests arrive as two exact pat
 
 ### Small change 13.9: AI update line by line; Suggest changes from a week note (gate: on the owner's iPhone: a training note's "Suggest changes from this note" opens the preview with a Week note line; the result lets one line be accepted and another rejected, and only the accepted one applies; "Edit program" opens the builder)
 D-099. Contract drafted after 13.8 is merged.
+
+### Small change 13.10: tab bar fix, exercise catalog, add or write any exercise, progression history, end an earlier session (gate: on the owner's iPhone, installed app. (1) During a workout, type a weight and reps and close the keyboard, ten times across two exercises: each time the tab bar is at the bottom edge of the screen with the Done dock directly above it. (2) Swap and Add exercise list the catalog, each machine exercise shows its machine, and a search for "smith machine" finds nine. (3) Add exercise, "Choose from all exercises, or create one", Create an exercise, set a type and values, "Add for today": the new exercise is the current one and logs with those values. (4) In Week, a partly done earlier day shows "End session"; after confirming it shows Done)
+D-100 to D-104. Executor prompt EXEC-13.10; the code and its tests arrive as two exact patches, committed separately; pull request as a draft, merged by fast-forward from the terminal. No database version change and no program schema change. Independent of 13.9; ships first.
 ### Release to the focus group (decisions D-090, D-091; contract after the snapshot)
 The tester notice, README, the how-to guide (Phase 13G), the feedback email link, one real Android check.
 
@@ -341,8 +344,8 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 
 | File | Role | md5 |
 |---|---|---|
-| docs/DECISIONS.md | Decision records D-001 to D-099 | 1f0fde5b99e44b7022bc3ed2757d5796 |
-| docs/PLAN.md | This file, v1.35 | recorded in chat at delivery (a file cannot carry its own hash) |
+| docs/DECISIONS.md | Decision records D-001 to D-104 | b9119d90f27d1a6f2f9d66fda9ee220e |
+| docs/PLAN.md | This file, v1.36 | recorded in chat at delivery (a file cannot carry its own hash) |
 | docs/DESIGN-BRIEF.md | Claude Design brief v1.0, placeholder data only | f216f6b548bad5894bbdc974259a6889 |
 | docs/DESIGN-BRIEF-v2.md | Claude Design brief v2.0 | de3ff85f61214a2b812b8a5922d60967 |
 | docs/DESIGN-BRIEF-v2.1.md | Claude Design brief v2.1 | 4eed874c85c1184cba28c7ebfccf4fad |
@@ -379,7 +382,9 @@ v1.5 method: scale by that measured rate, one session per phase of Phase 2 to 4 
 | docs/EXEC-13.5.md | Executor prompt, small change 13.5 | a03259e64c8819119eeb4a04686e001c (as committed on main at fdadf30) |
 | docs/EXEC-13.6.md | Executor prompt, small change 13.6 | a4f5e63e736d43e645f4c2cccb9ce6cc (as committed on main at 6744cdd) |
 | docs/EXEC-13.7.md | Executor prompt, small change 13.7 | 4458b72316626f62fc823c3253ad5e41 (as committed at 1a0cdb3) |
-| docs/EXEC-13.8.md | Executor prompt, small change 13.8 | recorded in chat at delivery (it checks this file's hash) |
+| docs/EXEC-13.8.md | Executor prompt, small change 13.8 | 44e615bf3ef86d85d1d7c0525c14166d (as committed at ad88be4) |
+| docs/EXEC-13.10.md | Executor prompt, small change 13.10 | recorded in chat at delivery (it checks this file's hash) |
+| public/catalog/exercises.json | Built-in exercise catalog, 103 exercises and 91 machine names (D-101) | db224a8c56d6258be129b80d2fe8c90a |
 | public/icon.svg | App icon master, stacked BYOB on #1D1D1F (D-087 rule 4) | 6cfad95c9fb18f76938528984a0b2627 |
 | design/icon-maskable.svg | Maskable icon master, glyphs inside the 40% safe circle | 579142575063be489845973f6670e140 |
 | public/pwa-192.png | Icon 192 | b3f126321ff863a86256eb44be1d1418 |
@@ -408,7 +413,7 @@ Served-bytes vs fresh local build for anything deployed. Visual acceptance on th
 
 ## 10. Backlog (parked, named, not blocking)
 
-B-1 In-app microphone (D-019) · B-2 Relay server and accounts (D-020) · B-3 Closed: demos are in scope (D-033), source in O-6 · B-4 Charts beyond simple trends · B-5 Sharing a week summary as an image · B-6 Multiple programs per user (one active program; keeping past programs for history pulled forward as D-095, small change 13.6) · B-7 Health-app and wearable sync (would likely bring the FTC Health Breach Notification Rule into play; see O-7) · B-8 Local progression engine beyond the chip in frame 3b · B-10 Convert an existing program between kg and lb as an explicit action (D-040) · B-11 App icon in the 1b direction (D-050) · B-9 Home-equipment versions of the starter programs (stated by the owner Sep 28, 2026: after the complete build) · B-12 In-app number pad for set entry: would remove the iOS keyboard from logging (and with it the contact AutoFill and keyboard scroll problems) but ends keyboard dictation for sets and supersedes D-051's native keypads; D-054 rule 1 did not stop the contact suggestion (D-064); the bar is accepted as cosmetic and this stays parked · B-13 Opening today and past days from Week to review logged sets or "Missed" (proposed in the Sep 29 bug handoff; Log already shows past sessions)
+B-1 In-app microphone (D-019) · B-2 Relay server and accounts (D-020) · B-3 Closed: demos are in scope (D-033), source in O-6 · B-4 Charts beyond simple trends · B-5 Sharing a week summary as an image · B-6 Multiple programs per user (one active program; keeping past programs for history pulled forward as D-095, small change 13.6) · B-7 Health-app and wearable sync (would likely bring the FTC Health Breach Notification Rule into play; see O-7) · B-8 Local progression engine beyond the chip in frame 3b · B-10 Convert an existing program between kg and lb as an explicit action (D-040) · B-11 App icon in the 1b direction (D-050) · B-9 Home-equipment versions of the starter programs (stated by the owner Sep 28, 2026: after the complete build) · B-12 In-app number pad for set entry: would remove the iOS keyboard from logging (and with it the contact AutoFill and keyboard scroll problems) but ends keyboard dictation for sets and supersedes D-051's native keypads; D-054 rule 1 did not stop the contact suggestion (D-064); the bar is accepted as cosmetic and this stays parked · B-13 Opening today and past days from Week to review logged sets or "Missed" (proposed in the Sep 29 bug handoff; Log already shows past sessions) · B-14 A dock button can miss its first tap while a field has focus: the dock moves when the keyboard flag clears between press and release (seen in chat's browser check of the Add step, Nov 14, 2026; D-077 rule 2 behavior, not changed) · B-15 Starter how-to text still has straight apostrophes and "towards" in two starter files (found Oct 10, 2026; D-092), to be fixed with their hashes
 
 ## 11. Open items
 
