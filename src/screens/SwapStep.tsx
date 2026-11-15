@@ -29,13 +29,16 @@ export function SwapStep({
   exerciseName,
   prefill,
   from,
+  mode = 'swap',
   onConfirm,
   onBack,
 }: {
   exerciseName: string
   prefill: ItemFields
   /** Where the starting values came from, for the line under the title. */
-  from: 'elsewhere' | 'swapped'
+  from: 'elsewhere' | 'swapped' | 'default'
+  /** D-102: the same step adds an exercise; Swap's words are the default. */
+  mode?: 'swap' | 'add'
   onConfirm: (fields: ItemFields) => void
   onBack: () => void
 }) {
@@ -83,10 +86,10 @@ export function SwapStep({
 
   return (
     <div className="ob" style={{ paddingBottom: 140 }}>
-      <BuilderBar title="Swap" onBack={onBack} />
+      <BuilderBar title={mode === 'add' ? 'Add exercise' : 'Swap'} onBack={onBack} />
       <Hero
         title="How do you want to log it today?"
-        sub={`${exerciseName}, for today only. ${from === 'elsewhere' ? 'Filled from your program.' : 'Filled from the exercise it replaces.'}`}
+        sub={`${exerciseName}, for today only. ${from === 'elsewhere' ? 'Filled from your program.' : from === 'swapped' ? 'Filled from the exercise it replaces.' : 'Filled with common starting values; change anything.'}`}
       />
       <div className="ob-pad" style={{ margin: 0, padding: '0 24px' }}>
         <div className="bd-field">
@@ -116,7 +119,7 @@ export function SwapStep({
         {type !== 'check' && field('restSec', 'Rest', 's')}
       </div>
       <Dock>
-        <PrimaryButton onClick={confirm}>Swap for today</PrimaryButton>
+        <PrimaryButton onClick={confirm}>{mode === 'add' ? 'Add for today' : 'Swap for today'}</PrimaryButton>
       </Dock>
     </div>
   )

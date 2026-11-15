@@ -60,6 +60,7 @@ files.push(
     .filter((path) => statSync(path).isFile())
     .sort(),
 )
+files.push('public/catalog/exercises.json')
 files.push(
   ...readdirSync('design')
     .map((name) => join('design', name))

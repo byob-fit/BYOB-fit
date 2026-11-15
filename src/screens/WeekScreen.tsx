@@ -10,7 +10,7 @@ import { ReviewBanner } from '../ai/parts.tsx'
 import { Sheet } from '../builder/ui.tsx'
 import { endOpenSession, listSessionsBetween } from '../db/index.ts'
 import { formatShortDay, formatTrainContext, formatWeekRange, isSameDate, toISODate } from '../lib/dates.ts'
-import { canChangeDate, changedFrom, dayLabel } from '../lib/dayChanges.ts'
+import { canChangeDate, canEndLate, changedFrom, dayLabel } from '../lib/dayChanges.ts'
 import { prescriptionText } from '../lib/prescription.ts'
 import { dayForDate, isActiveOn, resolveItem, weekDates } from '../lib/program.ts'
 import { buildDeck, isSetConfirmed, restDayState, sessionIdFor, sessionState, type DayState } from '../lib/session.ts'
@@ -22,6 +22,7 @@ import type { Session } from '../types/stores.ts'
 import { StateBlock } from '../ui/StateBlock.tsx'
 import { AppHeader, BackChevron, ListRow, Marker, RowChevron, Tick, TrainSwitch } from '../ui/shell.tsx'
 import { trainingCounts } from '../lib/scores.ts'
+import { Dialog } from '../ui/Dialog.tsx'
 import { ChangeDay } from './ChangeDay.tsx'
 
 const LONG_DAY = new Intl.DateTimeFormat('en-US', { weekday: 'long' })
@@ -128,6 +129,8 @@ export function WeekScreen() {
   // D-069: the date being changed, or today taking a future day's workout.
   const [changing, setChanging] = useState<{ date: Date; preset?: Day } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  // D-104: the earlier date whose open session the user is about to end.
+  const [ending, setEnding] = useState<{ date: Date; dayId: string; title: string } | null>(null)
   const todayIso = toISODate(today)
 
   const viewWeek = shown ?? week
@@ -291,6 +294,7 @@ export function WeekScreen() {
           const state = day.rest ? restDayState(session, buildDeck(day, viewWeek, date)) : sessionState(session)
           const was = changedFrom(program, changes, date, day)
           const changeable = canChangeDate(toISODate(date), todayIso, sessions, day.id)
+          const endable = canEndLate(session, todayIso)
           const plain = day.rest && !was && !isToday
           const content = (
             <>
@@ -311,6 +315,13 @@ export function WeekScreen() {
               ) : (
                 <div className="wk-day__open">{content}</div>
               )}
+              {endable && (
+                <div className="wk-day__actions">
+                  <button type="button" className="wk-day__action" aria-label={`End ${formatShortDay(date)} session`} onClick={() => setEnding({ date, dayId: day.id, title })}>
+                    End session
+                  </button>
+                </div>
+              )}
               {changeable && (
                 <div className="wk-day__actions">
                   <button type="button" className="wk-day__action" aria-label={`Change ${formatShortDay(date)}`} onClick={() => setChanging({ date })}>
@@ -328,6 +339,22 @@ export function WeekScreen() {
         })}
       </div>
       {isCurrent && <p className="note-v3">Tap a day to see it. Change and Restore show on today and later days.</p>}
+      {ending && (
+        <Dialog
+          title={`End ${LONG_DAY.format(ending.date)}’s session?`}
+          body={`What you logged for ${ending.title} is kept and the day counts as done. You can still edit its sets in Progress.`}
+          confirmLabel="End session"
+          onCancel={() => setEnding(null)}
+          onConfirm={() =>
+            void (async () => {
+              const iso = toISODate(ending.date)
+              if (await endOpenSession(iso, ending.dayId)) await clearDeckState(sessionIdFor(iso, ending.dayId))
+              setEnding(null)
+              setReloadKey((k) => k + 1)
+            })()
+          }
+        />
+      )}
       {!isCurrent && !isFuture && (
         <div className="actions-v3">
           <button type="button" className="btn btn--tertiary" onClick={() => navigate('/progress/training')}>

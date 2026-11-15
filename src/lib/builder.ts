@@ -1,6 +1,7 @@
 // Program builder rules (D-028, D-042, EXEC-08 task 3). Pure functions: no
 // storage, no DOM, no clock. Dates come in as ISO strings (YYYY-MM-DD).
 
+import { EMPTY_CATALOG, type Catalog } from './catalog.ts'
 import type {
   Day,
   Equipment,
@@ -210,17 +211,23 @@ export function sessionMinutes(day: Day): number {
 export interface LibraryEntry {
   id: string
   exercise: Exercise
+  /** D-101: the machine or station it is done on, from the catalog; never stored in a program. */
+  machine?: string
 }
 
-/** Starter-program exercises first, then every stored program's; first id wins. */
-export function exerciseLibrary(templates: Program[], programs: Program[]): LibraryEntry[] {
+/**
+ * Starter-program exercises first, then every stored program's, then the
+ * built-in catalog's (D-101); first id wins. The catalog's machine names apply
+ * to any entry with that id.
+ */
+export function exerciseLibrary(templates: Program[], programs: Program[], catalog: Catalog = EMPTY_CATALOG): LibraryEntry[] {
   const seen = new Map<string, Exercise>()
-  for (const program of [...templates, ...programs]) {
-    for (const [id, exercise] of Object.entries(program.exercises)) {
+  for (const exercises of [...templates.map((p) => p.exercises), ...programs.map((p) => p.exercises), catalog.exercises]) {
+    for (const [id, exercise] of Object.entries(exercises)) {
       if (!seen.has(id)) seen.set(id, exercise)
     }
   }
-  return [...seen].map(([id, exercise]) => ({ id, exercise }))
+  return [...seen].map(([id, exercise]) => (catalog.machines[id] ? { id, exercise, machine: catalog.machines[id] } : { id, exercise }))
 }
 
 export interface LibraryFilter {
@@ -238,18 +245,18 @@ export interface LibraryFilter {
 export function filterLibrary(lib: LibraryEntry[], filter: LibraryFilter): LibraryEntry[] {
   const muscles = filter.sameMusclesAs?.length ? filter.sameMusclesAs : null
   const words = (filter.query ?? '').trim().toLowerCase().split(/\s+/).filter(Boolean)
-  return lib.filter(({ exercise }) => {
+  return lib.filter(({ exercise, machine }) => {
     if (muscles && !exercise.muscles?.some((m) => muscles.includes(m))) return false
     if (filter.beginner && exercise.level !== 'beginner') return false
     if (filter.noEquipment && exercise.equipment !== 'none') return false
-    if (words.length && !words.every((w) => searchText(exercise).includes(w))) return false
+    if (words.length && !words.every((w) => searchText(exercise, machine).includes(w))) return false
     return true
   })
 }
 
-/** Name, muscles and equipment, as the search reads them (EXEC-11 task 11). */
-function searchText(exercise: Exercise): string {
-  const parts = [exercise.name, ...(exercise.muscles ?? []).flatMap((m) => [m, muscleLabel(m)])]
+/** Name, machine (D-101), muscles and equipment, as the search reads them (EXEC-11 task 11). */
+function searchText(exercise: Exercise, machine?: string): string {
+  const parts = [exercise.name, machine ?? '', ...(exercise.muscles ?? []).flatMap((m) => [m, muscleLabel(m)])]
   if (exercise.equipment) parts.push(exercise.equipment, EQUIPMENT_LABEL[exercise.equipment])
   return parts.join(' ').toLowerCase()
 }

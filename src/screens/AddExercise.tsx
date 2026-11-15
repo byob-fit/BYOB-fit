@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import { BuilderBar, SearchGlyph } from '../builder/ui.tsx'
 import { searchAddable, type AddableItem } from '../lib/sessionExercises.ts'
 
-export function AddExercise({ items, onPick, onBack }: { items: AddableItem[]; onPick: (item: AddableItem) => void; onBack: () => void }) {
+export function AddExercise({ items, onPick, onLibrary, onBack }: { items: AddableItem[]; onPick: (item: AddableItem) => void; /** D-102: every exercise, or a new one. */ onLibrary: () => void; onBack: () => void }) {
   const [query, setQuery] = useState('')
   const shown = useMemo(() => searchAddable(items, query), [items, query])
   return (
@@ -15,6 +15,9 @@ export function AddExercise({ items, onPick, onBack }: { items: AddableItem[]; o
       <div className="bd-hint" style={{ margin: '0 24px 8px' }}>
         For today only, right after the current exercise, with that day’s prescription.
       </div>
+      <button type="button" className="ob-add" style={{ margin: '0 24px 8px' }} onClick={onLibrary}>
+        <span>+</span>Choose from all exercises, or create one
+      </button>
       <label className="bd-search">
         <SearchGlyph />
         <input type="search" placeholder="Search exercises" aria-label="Search exercises" value={query} onChange={(e) => setQuery(e.target.value)} />

@@ -93,8 +93,10 @@ describe('Same muscles in the swap picker (D-075 rule 4, D-072 rule 2)', () => {
     expect(squat.exercise.muscles?.length).toBeGreaterThan(0)
   })
   it('the deck’s mid-workout swap starts it off', () => {
-    expect(sameOn({ allowCreate: false, sameMusclesOff: true })).toBe(false)
-    expect(read('../screens/DeckScreen.tsx')).toMatch(/allowCreate=\{false\}\s*sameMusclesOff/)
+    expect(sameOn({ sameMusclesOff: true })).toBe(false)
+    // D-102: the mid-workout swap can create an exercise, so allowCreate is no longer switched off.
+    expect(read('../screens/DeckScreen.tsx')).toMatch(/draft=\{program\}\s*sameMusclesOff/)
+    expect(read('../screens/DeckScreen.tsx')).not.toMatch(/allowCreate=\{false\}/)
   })
   it('a builder picker still starts it on', () => {
     expect(sameOn({})).toBe(true)

@@ -7,6 +7,7 @@ import type { Day, Program } from '../types/program.ts'
 import type { DayChange, Session } from '../types/stores.ts'
 import { toISODate } from './dates.ts'
 import { weekDates } from './program.ts'
+import { isSetConfirmed } from './session.ts'
 
 /** The shape older versions stored: day swaps for one program week. */
 export interface LegacyWeekPlan {
@@ -92,4 +93,13 @@ export function changeConfirmation(input: { date: Date; from: Pick<Day, 'name' |
 /** Rule 4: a session ended as it stands, as End does; nothing logged is touched. */
 export function endedAsItStands(session: Session, now: Date): Session {
   return session.endedAt ? session : { ...session, endedAt: now.toISOString() }
+}
+
+/**
+ * D-104: a session left open on an earlier date, with something logged, can be
+ * ended from Week. Today's open session ends in the deck; an empty one holds nothing.
+ */
+export function canEndLate(session: Pick<Session, 'date' | 'endedAt' | 'entries'> | undefined, today: string): boolean {
+  if (!session || session.endedAt || session.date >= today) return false
+  return session.entries.some((entry) => entry.checked === true || entry.sets.some(isSetConfirmed))
 }

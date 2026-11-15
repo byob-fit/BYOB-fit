@@ -1,13 +1,13 @@
 // Add and change exercises during a session, and edit from Log (D-069 rules 7
 // to 10, EXEC-12 commit C). Pure functions: no storage, no DOM.
 
-import type { Day, Item, ItemFields, Program, Section } from '../types/program.ts'
+import type { Day, Exercise, Item, ItemFields, LoadUnit, Program, Section } from '../types/program.ts'
 import type { Entry, Session, SetLog } from '../types/stores.ts'
 import { finishDraft, loadDraft, newId, usedIds } from './builder.ts'
 import { dayLabel } from './dayChanges.ts'
 import { prescriptionText } from './prescription.ts'
 import { isActiveOn, isLogged, resolveItem } from './program.ts'
-import { isSetConfirmed, type DeckItem } from './session.ts'
+import { isChoiceSkip, isSetConfirmed, type DeckItem } from './session.ts'
 import { readAmount, readLoadSet, type BoxResult } from './setBoxes.ts'
 import type { OrderEntry } from './todayPlan.ts'
 
@@ -72,6 +72,37 @@ export function addedEntry(source: AddableItem, itemId: string): Entry {
   }
 }
 
+/**
+ * D-102: the entry for an exercise added today from the library or just
+ * created. It has no source item in the program, so `fromItemId` is empty and
+ * the prescription is the one the user confirmed.
+ */
+export function libraryAddedEntry(exerciseId: string, fields: ItemFields, itemId: string): Entry {
+  const own: ItemFields = { ...fields }
+  delete own.exerciseId
+  return { itemId, exerciseId, sets: [], added: { fromItemId: '' }, fields: own }
+}
+
+/**
+ * D-102: the starting values for the Add step. That exercise's first active
+ * item in the program, otherwise common values for its kind: minutes for a
+ * cardio machine, reps for bodyweight, weight and reps for everything else.
+ */
+export function addPrefill(program: Program, exerciseId: string, exercise: Exercise | undefined, week: number, date: Date, unit: LoadUnit): { fields: ItemFields; from: 'elsewhere' | 'default' } {
+  for (const day of [...program.days].sort((a, b) => a.order - b.order)) {
+    for (const section of day.sections) {
+      for (const item of section.items) {
+        if (!isActiveOn(item, date)) continue
+        const resolved = resolveItem(item, week)
+        if ((resolved.exerciseId ?? item.exerciseId) === exerciseId) return { fields: { ...fieldsOf(resolved), exerciseId }, from: 'elsewhere' }
+      }
+    }
+  }
+  if (exercise?.equipment === 'cardio_machine') return { fields: { type: 'cardio_block', minutes: 20 }, from: 'default' }
+  if (exercise?.equipment === 'none') return { fields: { type: 'bodyweight_reps', sets: 3, repMin: 8, repMax: 12, restSec: 60 }, from: 'default' }
+  return { fields: { type: 'load_reps', sets: 3, repMin: 8, repMax: 12, restSec: 90, unit }, from: 'default' }
+}
+
 /** Today's order with `newId` right after the current item, in the current item's section. */
 export function insertAfter(order: OrderEntry[], currentId: string, newItemId: string, sectionId: string): OrderEntry[] {
   const at = order.findIndex((o) => o.itemId === currentId)
@@ -97,7 +128,9 @@ export function addedDeckItems(session: Session | null | undefined, program: Pro
   for (const entry of session?.entries ?? []) {
     if (!entry.added || !entry.fields) continue
     const source = findItem(program, entry.added.fromItemId)
-    const section = source?.section ?? day.sections[0]
+    // D-102: with no source item, the section is the one it was added into today.
+    const ordered = session?.order?.find((o) => o.itemId === entry.itemId)?.sectionId
+    const section = source?.section ?? day.sections.find((sec) => sec.id === ordered) ?? day.sections[0]
     if (!section) continue
     const item: Item = { ...entry.fields, id: entry.itemId, exerciseId: entry.exerciseId, type: entry.fields.type ?? 'load_reps' }
     const logged = source ? isLogged(source.section.kind, { ...source.item, ...entry.fields }) : item.type !== 'check'
@@ -139,12 +172,24 @@ export function swapPrefill(program: Program, exerciseId: string, swappedItemId:
 
 // ── Progression (rule 9) ──
 
-/** The program item's recent entries with this exercise, newest first, before `beforeDate`; changed entries do not count. */
-export function progressionHistory(sessions: Session[], itemId: string, exerciseId: string, beforeDate: string): Entry[] {
+/**
+ * The program item's recent entries with this exercise, newest first, before
+ * `beforeDate`; changed entries do not count. D-103: an entry skipped by choice
+ * with nothing logged is not a session of the exercise, and, given the current
+ * program's item ids, entries of the same exercise under an item that is not
+ * in this program (an earlier program) count too.
+ */
+export function progressionHistory(sessions: Session[], itemId: string, exerciseId: string, beforeDate: string, programItemIds?: ReadonlySet<string>): Entry[] {
+  const counts = (e: Entry) => {
+    if (e.exerciseId !== exerciseId || e.changed) return false
+    if (isChoiceSkip(e) && !e.sets.some(isSetConfirmed)) return false
+    if (e.itemId === itemId) return true
+    return programItemIds !== undefined && !e.added && !programItemIds.has(e.itemId)
+  }
   return [...sessions]
     .filter((s) => s.date < beforeDate)
     .sort((a, b) => b.date.localeCompare(a.date))
-    .flatMap((s) => s.entries.filter((e) => e.itemId === itemId && e.exerciseId === exerciseId && !e.changed))
+    .flatMap((s) => s.entries.filter(counts))
 }
 
 // ── Keep an added exercise in the program (rule 7) ──
@@ -157,8 +202,12 @@ export function keepAddedInProgram(program: Program, dayId: string, order: Order
   const draft = loadDraft(program)
   const day = draft.days.find((d) => d.id === dayId)
   const source = entry.added ? findItem(draft, entry.added.fromItemId) : null
-  if (!day || !source) return finishDraft(draft, program)
-  const copy: Item = { ...structuredClone(source.item), id: newId(draft, 'item') }
+  // D-102: an exercise added from the library has no source item; its own prescription is kept.
+  const own = !source && entry.added && entry.fields && draft.exercises[entry.exerciseId] ? entry.fields : null
+  if (!day || (!source && !own)) return finishDraft(draft, program)
+  const copy: Item = source
+    ? { ...structuredClone(source.item), id: newId(draft, 'item') }
+    : { ...structuredClone(own!), id: newId(draft, 'item'), exerciseId: entry.exerciseId, type: own!.type ?? 'load_reps' }
   delete copy.retiredFrom
   const at = order.findIndex((o) => o.itemId === entry.itemId)
   const dayItemIds = new Set(day.sections.flatMap((s) => s.items.map((i) => i.id)))

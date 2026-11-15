@@ -77,7 +77,7 @@ export default defineConfig({
         // HTML, and the icons. The manifest is added by the plugin.
         // Starter programs are precached so onboarding works offline (EXEC-07),
         // and the bundled fonts so the app never falls back offline (D-083 rule 5).
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}', 'templates/*.json'],
+        globPatterns: ['**/*.{js,css,html,png,svg,woff2}', 'templates/*.json', 'catalog/*.json'],
         // The sample program is never precached; it is network-first below.
         globIgnores: ['**/sample-program.json'],
         cleanupOutdatedCaches: true,

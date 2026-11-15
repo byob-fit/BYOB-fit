@@ -229,6 +229,7 @@ export function ExercisePicker({
                 <Demo large />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="bd-ex__name">{entry.exercise.name}</div>
+                  {entry.machine && <div className="bd-ex__sub">{entry.machine}</div>}
                   {exerciseMeta(entry.exercise) && <div className="bd-ex__sub">{exerciseMeta(entry.exercise)}</div>}
                 </div>
                 <span className={on ? 'ob-mark ob-mark--on' : 'ob-mark'}>{on && <TickIcon />}</span>

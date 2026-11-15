@@ -13,17 +13,19 @@ import { getMeta, getProgram, listAllSessions, saveProgram, setMeta } from '../d
 import { clearDraft, readDraft, type BuilderDraft } from '../builder/draft.ts'
 import { blurSetBox, endDialogBody, endStep, type DoneItem } from '../lib/endFlow.ts'
 import {
+  addPrefill,
   addableItems,
   addedDeckItems,
   addedEntry,
   effectiveDeckItem,
   insertAfter,
   keepAddedInProgram,
+  libraryAddedEntry,
   newAddedItemId,
   progressionHistory,
   swapPrefill,
 } from '../lib/sessionExercises.ts'
-import { howToSteps, lowerFirst } from '../lib/builder.ts'
+import { howToSteps, lowerFirst, withExercise, type LibraryEntry } from '../lib/builder.ts'
 import { formatTrainContext, toISODate } from '../lib/dates.ts'
 import { canChangeDate } from '../lib/dayChanges.ts'
 import { parseSet, type ParsedFields } from '../lib/parseSet.ts'
@@ -300,7 +302,10 @@ function Deck() {
   const [changingDay, setChangingDay] = useState(false)
   // D-069 rules 7 and 8: the Add exercise list, and the swap step after a pick.
   const [adding, setAdding] = useState(false)
-  const [swapPick, setSwapPick] = useState<{ id: string; name: string } | null>(null)
+  const [swapPick, setSwapPick] = useState<{ id: string; name: string; entry: LibraryEntry } | null>(null)
+  // D-102: Add from every exercise, then the picked one's prescription step.
+  const [addLibrary, setAddLibrary] = useState(false)
+  const [addPick, setAddPick] = useState<LibraryEntry | null>(null)
   const [kept, setKept] = useState<{ sets: Record<string, boolean>; order: boolean }>({ sets: {}, order: false })
   const [keepError, setKeepError] = useState<string | null>(null)
   const [draftWaiting, setDraftWaiting] = useState<BuilderDraft | false | null>(null)
@@ -429,9 +434,11 @@ function Deck() {
   // today's added or changed exercise gets no suggestion for the program item.
   const suggestion = useMemo(() => {
     if (!current || entry?.changed || entry?.added) return null
-    const past: Entry[] = progressionHistory(history, current.item.id, exerciseId, todayIso)
+    // D-103: sessions of this exercise under an earlier program's items count too.
+    const itemIds = new Set((program?.days ?? []).flatMap((d) => d.sections.flatMap((sec) => sec.items.map((i) => i.id))))
+    const past: Entry[] = progressionHistory(history, current.item.id, exerciseId, todayIso, itemIds)
     return suggestProgression({ ...current.resolved, progression: current.item.progression }, exercise, past, unit)
-  }, [current, entry, history, todayIso, exerciseId, exercise, unit])
+  }, [current, entry, history, todayIso, exerciseId, exercise, unit, program])
 
   const prefillFor = useCallback(
     (row: SetRow): { firstTime: boolean; reference?: SetLog } => {
@@ -966,11 +973,63 @@ function Deck() {
 
   if (!current) return null
 
+  // D-102: an exercise picked from the library or just created is kept in the
+  // program's exercise list, so its name and how-to stay with what was logged.
+  const holdExercise = async (picked: LibraryEntry) => {
+    const latest = (await getProgram(program.id)) ?? program
+    if (latest.exercises[picked.id]) return
+    await saveProgram(withExercise(latest, picked))
+    await refresh()
+  }
+  const closeAdd = () => {
+    setAdding(false)
+    setAddLibrary(false)
+    setAddPick(null)
+  }
+
+  // ── Add from every exercise, with its own prescription (D-102) ──
+  if (adding && addPick) {
+    const prefill = addPrefill(program, addPick.id, addPick.exercise, week, today, unit)
+    return (
+      <SwapStep
+        mode="add"
+        exerciseName={addPick.exercise.name}
+        prefill={prefill.fields}
+        from={prefill.from}
+        onBack={() => setAddPick(null)}
+        onConfirm={(fields) =>
+          void (async () => {
+            await holdExercise(addPick)
+            const id = newAddedItemId(program, api.session)
+            const order = insertAfter(orderOf(deck), current.item.id, id, current.section.id)
+            await api.addEntry(libraryAddedEntry(addPick.id, fields, id), order)
+            closeAdd()
+            setPosition(order.findIndex((o) => o.itemId === id))
+            window.scrollTo({ top: 0 })
+          })()
+        }
+      />
+    )
+  }
+  if (adding && addLibrary) {
+    return (
+      <ExercisePicker
+        title="Add exercise"
+        library={library}
+        beginnerDefault={false}
+        draft={program}
+        onBack={() => setAddLibrary(false)}
+        onPick={(picked) => setAddPick(picked)}
+      />
+    )
+  }
+
   // ── Add exercise (D-069 rule 7) ──
   if (adding) {
     return (
       <AddExercise
         items={addableItems(program, week, today)}
+        onLibrary={() => setAddLibrary(true)}
         onBack={() => setAdding(false)}
         onPick={(source) =>
           void (async () => {
@@ -996,10 +1055,12 @@ function Deck() {
         from={prefill.from}
         onBack={() => setSwapPick(null)}
         onConfirm={(fields) =>
-          void api.changeExercise(current.item.id, swapPick.id, fields).then(() => {
+          void (async () => {
+            await holdExercise(swapPick.entry)
+            await api.changeExercise(current.item.id, swapPick.id, fields)
             setSwapPick(null)
             setSheet(null)
-          })
+          })()
         }
       />
     )
@@ -1014,10 +1075,9 @@ function Deck() {
         library={library}
         beginnerDefault={isNew}
         draft={program}
-        allowCreate={false}
         sameMusclesOff
         onBack={() => setSheet(null)}
-        onPick={(picked) => setSwapPick({ id: picked.id, name: picked.exercise.name })}
+        onPick={(picked) => setSwapPick({ id: picked.id, name: picked.exercise.name, entry: picked })}
       />
     )
   }

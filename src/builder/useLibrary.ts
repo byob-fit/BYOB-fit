@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { listPrograms } from '../db/index.ts'
 import { exerciseLibrary, type LibraryEntry } from '../lib/builder.ts'
+import { EMPTY_CATALOG, readCatalog, type Catalog } from '../lib/catalog.ts'
 import { importProgramText } from '../lib/importProgram.ts'
 import { STARTER_TEMPLATES } from '../lib/onboarding.ts'
 import type { Program } from '../types/program.ts'
@@ -53,12 +54,34 @@ export function useStarterTemplates(): { templates: LoadedTemplate[] | null; err
   return { templates, error }
 }
 
-/** Starter exercises, then stored programs', then the draft's own (custom ones). */
+let catalogLoad: Promise<Catalog> | null = null
+
+/**
+ * D-101: the built-in catalog from public/catalog/ (precached for offline),
+ * fetched once per page load. Without it the pickers still work from the
+ * starter programs and stored programs; a failed load is tried again next time.
+ */
+export function loadCatalog(): Promise<Catalog> {
+  catalogLoad ??= fetch(`${import.meta.env.BASE_URL}catalog/exercises.json`)
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return readCatalog(await response.json())
+    })
+    .catch(() => {
+      catalogLoad = null
+      return EMPTY_CATALOG
+    })
+  return catalogLoad
+}
+
+/** Starter exercises, then stored programs', then the draft's own (custom ones), then the catalog's (D-101). */
 export function useLibrary(draft: Program | null, templates: LoadedTemplate[] | null): LibraryEntry[] {
   const [stored, setStored] = useState<Program[]>([])
+  const [catalog, setCatalog] = useState<Catalog>(EMPTY_CATALOG)
   useEffect(() => {
     let live = true
     void listPrograms().then((found) => live && setStored(found))
+    void loadCatalog().then((loaded) => live && setCatalog(loaded))
     return () => {
       live = false
     }
@@ -68,7 +91,8 @@ export function useLibrary(draft: Program | null, templates: LoadedTemplate[] | 
       exerciseLibrary(
         (templates ?? []).map((t) => t.program),
         draft ? [...stored, draft] : stored,
+        catalog,
       ),
-    [templates, stored, draft],
+    [templates, stored, draft, catalog],
   )
 }
